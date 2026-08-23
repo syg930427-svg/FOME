@@ -1,10 +1,10 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadPhoto } from '../api';
-import { PhotoPlaceholder, PrimaryButton, ScreenHeader, TextButton } from '../components';
+import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton, TextButton } from '../components';
 import { PhotoGlyph } from '../components/EntryIcons';
 import { PermissionSheet } from '../components/PermissionSheet';
 import { RootStackParamList } from '../navigation/types';
@@ -18,16 +18,27 @@ export default function S06_Upload({ navigation }: Props) {
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [loadErrorVisible, setLoadErrorVisible] = useState(false);
+  const [pendingAsset, setPendingAsset] = useState<{ uri: string; width: number; height: number } | null>(null);
+
+  async function finishUpload(asset: { uri: string; width: number; height: number }) {
+    try {
+      setPhoto(asset, 'gallery');
+      const { photoId } = await uploadPhoto(asset.uri);
+      setPhotoId(photoId);
+      navigation.navigate('S07_PhotoConfirm');
+    } catch {
+      // 04-07 — HEIC/iCloud/format failures surface here, not silently.
+      setPendingAsset(asset);
+      setLoadErrorVisible(true);
+    }
+  }
 
   async function openPicker() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
     if (result.canceled || !result.assets[0]) return;
-
     const asset = result.assets[0];
-    setPhoto({ uri: asset.uri, width: asset.width, height: asset.height }, 'gallery');
-    const { photoId } = await uploadPhoto(asset.uri);
-    setPhotoId(photoId);
-    navigation.navigate('S07_PhotoConfirm');
+    await finishUpload({ uri: asset.uri, width: asset.width, height: asset.height });
   }
 
   // Contextual permission (01-06): requested right before the gallery opens, not at app launch.
@@ -108,6 +119,41 @@ export default function S06_Upload({ navigation }: Props) {
         }}
         onDismiss={() => setSheetVisible(false)}
       />
+
+      <Modal visible={loadErrorVisible} transparent animationType="fade" onRequestClose={() => setLoadErrorVisible(false)}>
+        <Pressable style={styles.errorBackdrop} onPress={() => setLoadErrorVisible(false)} />
+        <View style={styles.errorSheet}>
+          <View style={styles.errorGrabHandle} />
+          <View style={styles.errorRow}>
+            <View style={styles.errorIconWrap}>
+              <Text style={styles.errorIconGlyph}>!</Text>
+            </View>
+            <View style={styles.errorTextCol}>
+              <Text style={styles.errorTitle}>사진을 불러오지 못했어요</Text>
+              <Text style={styles.errorText}>iCloud에서 원본을 내려받는 중이거나 지원하지 않는 형식일 수 있어요. HEIC·JPG·PNG 사진을 사용해 주세요.</Text>
+            </View>
+          </View>
+          <View style={styles.errorButtons}>
+            <SecondaryButton
+              label="다른 사진 선택"
+              compact
+              style={styles.errorButton}
+              onPress={() => {
+                setLoadErrorVisible(false);
+                openPicker();
+              }}
+            />
+            <PrimaryButton
+              label="다시 시도"
+              style={styles.errorButton}
+              onPress={() => {
+                setLoadErrorVisible(false);
+                if (pendingAsset) finishUpload(pendingAsset);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -132,4 +178,29 @@ const styles = StyleSheet.create({
   goodText: { color: colors.successText },
   badText: { color: colors.errorStrongAlt },
   ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 10 },
+  errorBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(23,23,25,0.45)' },
+  errorSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 28,
+    gap: 16,
+  },
+  errorGrabHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  errorRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+  errorIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center' },
+  errorIconGlyph: { fontSize: 19, fontWeight: '700', color: colors.error },
+  errorTextCol: { flex: 1, gap: 6 },
+  errorTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  errorText: { fontSize: 14, lineHeight: 14 * 1.55, color: colors.textSecondaryAlt },
+  errorButtons: { flexDirection: 'row', gap: 10 },
+  errorButton: { flex: 1 },
 });

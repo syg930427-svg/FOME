@@ -19,6 +19,34 @@ export type GenerationState = {
   previewUrl?: string;
 } | null;
 
+export type AspectPreset = 'passport' | '3x4' | 'free';
+export type FramingId =
+  | 'original'
+  | 'faceNeck'
+  | 'faceShoulders'
+  | 'upperChest'
+  | 'midChest'
+  | 'waistUp'
+  | 'fullUpperBody'
+  | 'custom';
+
+/** 05-03/05-04 crop + face-position state. Reset whenever the photo itself changes (05-14). */
+export type Framing = {
+  aspect: AspectPreset;
+  rotationDeg: number;
+  faceSize: number; // 0-1 slider value
+  faceOffsetY: number; // 0-1 slider value
+  framingId: FramingId;
+};
+
+const defaultFraming: Framing = {
+  aspect: 'passport',
+  rotationDeg: 0,
+  faceSize: 0.58,
+  faceOffsetY: 0.44,
+  framingId: 'faceShoulders',
+};
+
 type SessionState = {
   purposeId: PurposeId | null;
   policyId: string | null;
@@ -26,6 +54,7 @@ type SessionState = {
   source: 'camera' | 'gallery' | null;
   photo: Photo | null;
   photoId: string | null;
+  framing: Framing;
   options: Options;
   generation: GenerationState;
   paid: boolean;
@@ -34,6 +63,8 @@ type SessionState = {
   selectPurpose: (purposeId: PurposeId, policyId: string, editLevel: 0 | 1 | 2 | 3) => void;
   setPhoto: (photo: Photo, source: 'camera' | 'gallery') => void;
   setPhotoId: (photoId: string) => void;
+  setFraming: (framing: Partial<Framing>) => void;
+  resetFraming: () => void;
   setOption: <K extends keyof Pick<Options, 'hair' | 'background'>>(key: K, value: Options[K]) => void;
   setGeneration: (generation: GenerationState) => void;
   markPaid: (orderId: string) => void;
@@ -60,6 +91,7 @@ export const useSession = create<SessionState>((set) => ({
   source: null,
   photo: null,
   photoId: null,
+  framing: defaultFraming,
   options: defaultOptions,
   generation: null,
   paid: false,
@@ -74,14 +106,19 @@ export const useSession = create<SessionState>((set) => ({
       source: null,
       photo: null,
       photoId: null,
+      framing: defaultFraming,
       options: defaultOptions,
       generation: null,
       paid: false,
       orderId: null,
     }),
 
-  setPhoto: (photo, source) => set({ photo, source }),
+  // 05-14: replacing the photo keeps purpose/options but drops crop/framing/face position.
+  setPhoto: (photo, source) => set({ photo, source, framing: defaultFraming }),
   setPhotoId: (photoId) => set({ photoId }),
+
+  setFraming: (partial) => set((state) => ({ framing: { ...state.framing, ...partial } })),
+  resetFraming: () => set({ framing: defaultFraming }),
 
   setOption: (key, value) => set((state) => ({ options: { ...state.options, [key]: value } })),
 
@@ -97,6 +134,7 @@ export const useSession = create<SessionState>((set) => ({
       source: null,
       photo: null,
       photoId: null,
+      framing: defaultFraming,
       options: defaultOptions,
       generation: null,
       paid: false,

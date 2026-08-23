@@ -8,6 +8,8 @@ type Props = {
   disabled?: boolean;
   loading?: boolean;
   danger?: boolean;
+  /** White-bg/dark-text variant for dark surfaces (e.g. camera error 04-06). */
+  inverse?: boolean;
   style?: ViewStyle;
 };
 
@@ -17,7 +19,7 @@ type Props = {
  * 불러오는 중") on a darker #0052CC — press feedback shade doubling as the
  * busy state, per 02-03.
  */
-export function PrimaryButton({ label, onPress, disabled, loading, danger, style }: Props) {
+export function PrimaryButton({ label, onPress, disabled, loading, danger, inverse, style }: Props) {
   const isDisabled = disabled || loading;
   return (
     <Pressable
@@ -26,20 +28,23 @@ export function PrimaryButton({ label, onPress, disabled, loading, danger, style
       onPress={isDisabled ? undefined : onPress}
       style={({ pressed }) => [
         styles.base,
+        inverse && styles.inverse,
         danger && styles.danger,
-        isDisabled && !danger && !loading && styles.disabled,
-        loading && !danger && styles.loading,
+        isDisabled && !danger && !inverse && !loading && styles.disabled,
+        loading && !danger && !inverse && styles.loading,
         pressed && !isDisabled && styles.pressed,
         style,
       ]}
     >
       {loading ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator color="#fff" size="small" />
-          <Text style={styles.label}>{label}</Text>
+          <ActivityIndicator color={inverse ? colors.textPrimary : '#fff'} size="small" />
+          <Text style={[styles.label, inverse && styles.labelInverse]}>{label}</Text>
         </View>
       ) : (
-        <Text style={[styles.label, isDisabled && !danger && styles.labelDisabled]}>{label}</Text>
+        <Text style={[styles.label, inverse && styles.labelInverse, isDisabled && !danger && !inverse && styles.labelDisabled]}>
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -59,6 +64,8 @@ const styles = StyleSheet.create({
   loading: { backgroundColor: '#0052CC' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   danger: { height: 42, borderRadius: 11, backgroundColor: colors.error },
+  inverse: { backgroundColor: colors.inverseText },
   label: { ...type.ctaLabel, color: colors.inverseText },
+  labelInverse: { color: colors.textPrimary },
   labelDisabled: { color: colors.textDisabled },
 });

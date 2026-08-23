@@ -9,3 +9,4 @@ export type { SpecRow } from './SpecList';
 export { StepProgress } from './StepProgress';
 export { ScreenHeader } from './ScreenHeader';
 export { PhotoPlaceholder } from './PhotoPlaceholder';
+export { FramingPreview } from './FramingPreview';

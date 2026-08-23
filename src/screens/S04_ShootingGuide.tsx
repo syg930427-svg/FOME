@@ -4,10 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GUIDES } from '../api/mockData';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton } from '../components';
-import { CameraGlyph } from '../components/EntryIcons';
-import { PermissionSheet } from '../components/PermissionSheet';
 import { RootStackParamList } from '../navigation/types';
-import { getCameraPermission, requestCameraPermission } from '../permissions';
 import { colors, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'S04_ShootingGuide'>;
@@ -15,30 +12,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'S04_ShootingGuide'>;
 export default function S04_ShootingGuide({ navigation }: Props) {
   const [expanded, setExpanded] = useState<string | null>(GUIDES[0]?.id ?? null);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
-  const [sheetVisible, setSheetVisible] = useState(false);
-
-  // Contextual permission (01-05): requested only when the user actually taps
-  // "촬영 시작", never at app launch. Already-denied skips straight to 01-08.
-  async function handleShootStart() {
-    const status = await getCameraPermission();
-    if (status === 'granted' || status === 'limited') {
-      navigation.navigate('S05_Camera');
-    } else if (status === 'denied') {
-      navigation.navigate('PermissionDenied', { variant: 'camera' });
-    } else {
-      setSheetVisible(true);
-    }
-  }
-
-  async function handleAllowCamera() {
-    const status = await requestCameraPermission();
-    setSheetVisible(false);
-    if (status === 'granted' || status === 'limited') {
-      navigation.navigate('S05_Camera');
-    } else {
-      navigation.navigate('PermissionDenied', { variant: 'camera' });
-    }
-  }
 
   // 03-06: confirming an item collapses it and auto-opens the next
   // unconfirmed one. Confirming all 6 is never required to shoot — the
@@ -128,25 +101,17 @@ export default function S04_ShootingGuide({ navigation }: Props) {
       </ScrollView>
 
       <View style={styles.ctaArea}>
-        <SecondaryButton label="사진 선택" style={styles.selectButton} onPress={() => navigation.navigate('S06_Upload')} />
-        <PrimaryButton label="촬영 시작" style={styles.shootButton} onPress={handleShootStart} />
+        <SecondaryButton
+          label="사진 선택"
+          style={styles.selectButton}
+          onPress={() => navigation.navigate('PhotoInputMethod', { preselect: 'gallery' })}
+        />
+        <PrimaryButton
+          label="촬영 시작"
+          style={styles.shootButton}
+          onPress={() => navigation.navigate('PhotoInputMethod', { preselect: 'camera' })}
+        />
       </View>
-
-      <PermissionSheet
-        visible={sheetVisible}
-        icon={<CameraGlyph />}
-        title="카메라 권한이 필요해요"
-        body="앱에서 바로 촬영하려면 카메라 접근이 필요해요. 가이드에 맞춰 촬영할 때만 사용해요."
-        checklist={['촬영 화면에서만 카메라를 켜요', '촬영한 사진은 사진 제작에만 사용해요']}
-        primaryLabel="카메라 권한 허용"
-        onPrimary={handleAllowCamera}
-        secondaryLabel="기존 사진 선택하기"
-        onSecondary={() => {
-          setSheetVisible(false);
-          navigation.navigate('S06_Upload');
-        }}
-        onDismiss={() => setSheetVisible(false)}
-      />
     </SafeAreaView>
   );
 }

@@ -1,9 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PURPOSES } from '../api';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton, SpecList, TextButton } from '../components';
+import { PhotoZoomModal } from '../components/PhotoZoomModal';
+import { ReplacePhotoSheet } from '../components/ReplacePhotoSheet';
 import { RootStackParamList } from '../navigation/types';
 import { useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
@@ -23,13 +25,15 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
   const source = useSession((s) => s.source);
   const photo = useSession((s) => s.photo);
   const purpose = PURPOSES.find((p) => p.id === purposeId);
+  const [zoomVisible, setZoomVisible] = useState(false);
+  const [replaceVisible, setReplaceVisible] = useState(false);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScreenHeader title="사진 확인" onBack={navigation.goBack} />
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        <View style={styles.previewWrap}>
+        <Pressable style={styles.previewWrap} onPress={() => setZoomVisible(true)}>
           {photo ? (
             <Image source={{ uri: photo.uri }} style={styles.previewImage} resizeMode="cover" />
           ) : (
@@ -38,7 +42,7 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{source === 'gallery' ? '원본 · 갤러리에서 선택' : '원본 · 방금 촬영'}</Text>
           </View>
-        </View>
+        </Pressable>
 
         <SpecList
           rows={[
@@ -57,8 +61,36 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
           <SecondaryButton label="다시 촬영" compact style={styles.retakeButton} onPress={() => navigation.navigate('S05_Camera')} />
           <SecondaryButton label="다른 사진" compact style={styles.retakeButton} onPress={() => navigation.navigate('S06_Upload')} />
         </View>
-        <PrimaryButton label="이 사진 사용하기" onPress={() => navigation.navigate('S08_Options')} />
+        <PrimaryButton label="이 사진 사용하기" onPress={() => navigation.navigate('PhotoCrop')} />
       </View>
+
+      <PhotoZoomModal
+        visible={zoomVisible}
+        onClose={() => setZoomVisible(false)}
+        photoUri={photo?.uri}
+        purposeLabel={purpose?.title.replace(' 사진', '') ?? '증명사진'}
+        onReplace={() => {
+          setZoomVisible(false);
+          setReplaceVisible(true);
+        }}
+        onUse={() => {
+          setZoomVisible(false);
+          navigation.navigate('PhotoCrop');
+        }}
+      />
+
+      <ReplacePhotoSheet
+        visible={replaceVisible}
+        onDismiss={() => setReplaceVisible(false)}
+        onRetake={() => {
+          setReplaceVisible(false);
+          navigation.navigate('S05_Camera');
+        }}
+        onReselect={() => {
+          setReplaceVisible(false);
+          navigation.navigate('S06_Upload');
+        }}
+      />
     </SafeAreaView>
   );
 }

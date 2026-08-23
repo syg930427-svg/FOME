@@ -4,12 +4,12 @@ import { colors } from '../theme/tokens';
 
 /** Simple line-shape glyphs matching the design's 2.5px-stroke placeholder icons. */
 
-export function CameraGlyph() {
-  return <View style={styles.cameraBody} />;
+export function CameraGlyph({ color = colors.primary }: { color?: string }) {
+  return <View style={[styles.cameraBody, { borderColor: color }]} />;
 }
 
-export function PhotoGlyph() {
-  return <View style={styles.photoBody} />;
+export function PhotoGlyph({ color = colors.primary }: { color?: string }) {
+  return <View style={[styles.photoBody, { borderColor: color }]} />;
 }
 
 export function BellGlyph() {
@@ -29,8 +29,8 @@ export function ErrorGlyph() {
 }
 
 const styles = StyleSheet.create({
-  cameraBody: { width: 26, height: 20, borderRadius: 5, borderWidth: 2.5, borderColor: colors.primary },
-  photoBody: { width: 24, height: 24, borderRadius: 5, borderWidth: 2.5, borderColor: colors.primary },
+  cameraBody: { width: 26, height: 20, borderRadius: 5, borderWidth: 2.5 },
+  photoBody: { width: 24, height: 24, borderRadius: 5, borderWidth: 2.5 },
   bellBody: { width: 22, height: 24, borderTopLeftRadius: 11, borderTopRightRadius: 11, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderWidth: 2.5, borderColor: colors.primary },
   warningGlyph: { fontSize: 30, fontWeight: '700', color: colors.warning },
   updateGlyph: { fontSize: 34, fontWeight: '700', color: colors.primary },

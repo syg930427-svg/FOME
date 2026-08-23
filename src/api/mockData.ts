@@ -1,3 +1,4 @@
+import type { FramingId } from '../state/session';
 import { Policy, PurposeId } from './types';
 
 export const PURPOSES: {
@@ -88,6 +89,35 @@ export const GENERATION_STEPS = [
   '선택한 스타일을 적용하고 있어요',
   '마지막으로 사진을 정리해요',
 ];
+
+/**
+ * 05-05~13 — 상체 범위(framing) presets. `topPct`/`sidePct` are the crop
+ * frame's inset from the preview container as a fraction (0-1), used to draw
+ * the blue frame outline over the placeholder figure; `faceScale` scales the
+ * figure so tighter framings read as "closer" without a real image pipeline.
+ */
+export const FRAMING_OPTIONS: {
+  id: FramingId;
+  title: string;
+  subtitle: string;
+  occupancyLabel: string;
+  topPct: number;
+  sidePct: number;
+  faceScale: number;
+  dashed?: boolean;
+}[] = [
+  { id: 'original', title: 'Original Framing', subtitle: '원본 그대로', occupancyLabel: '얼굴 점유 32%', topPct: 0.04, sidePct: 0.04, faceScale: 0.8 },
+  { id: 'faceNeck', title: 'Face & Neck', subtitle: '목선까지', occupancyLabel: '얼굴 점유 72%', topPct: 0.05, sidePct: 0.12, faceScale: 1.05 },
+  { id: 'faceShoulders', title: 'Face & Shoulders', subtitle: '어깨선까지', occupancyLabel: '얼굴 점유 60%', topPct: 0.07, sidePct: 0.09, faceScale: 0.92 },
+  { id: 'upperChest', title: 'Upper Chest', subtitle: '가슴 상단까지', occupancyLabel: '얼굴 점유 48%', topPct: 0.1, sidePct: 0.08, faceScale: 0.78 },
+  { id: 'midChest', title: 'Mid Chest', subtitle: '가슴 중앙까지', occupancyLabel: '얼굴 점유 40%', topPct: 0.14, sidePct: 0.07, faceScale: 0.68 },
+  { id: 'waistUp', title: 'Waist-Up', subtitle: '허리까지', occupancyLabel: '얼굴 점유 30%', topPct: 0.19, sidePct: 0.05, faceScale: 0.56 },
+  { id: 'fullUpperBody', title: 'Full Upper Body', subtitle: '상체 전체', occupancyLabel: '얼굴 점유 24%', topPct: 0.24, sidePct: 0.03, faceScale: 0.48 },
+  { id: 'custom', title: 'Custom Framing', subtitle: '직접 조정 · 점선 = 편집 가능', occupancyLabel: '', topPct: 0.09, sidePct: 0.08, faceScale: 0.82, dashed: true },
+];
+
+/** Purposes whose policy locks the recommended framing (RULE: 규격 이탈 방지). */
+export const FRAMING_LOCKED_PURPOSES = new Set(['passport', 'residentId', 'driverLicense']);
 
 export const PRODUCTS = [
   {

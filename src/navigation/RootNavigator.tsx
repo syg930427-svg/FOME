@@ -6,6 +6,13 @@ import PermissionDenied from '../screens/entry/PermissionDenied';
 import ServerError from '../screens/entry/ServerError';
 import Splash from '../screens/entry/Splash';
 import UpdateRequired from '../screens/entry/UpdateRequired';
+import CameraPermissionDenied from '../screens/CameraPermissionDenied';
+import FacePosition from '../screens/FacePosition';
+import FramingSelect from '../screens/FramingSelect';
+import PhotoConfirmFinal from '../screens/PhotoConfirmFinal';
+import PhotoCrop from '../screens/PhotoCrop';
+import PhotoInputMethod from '../screens/PhotoInputMethod';
+import PhotoPermissionDenied from '../screens/PhotoPermissionDenied';
 import S01_Purpose from '../screens/S01_Purpose';
 import S02_PurposeGuide from '../screens/S02_PurposeGuide';
 import S03_IdealSample from '../screens/S03_IdealSample';
@@ -23,7 +30,9 @@ import { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
- * S01 → S02 → S03 → S04 → (S05 촬영 | S06 업로드) → S07 → S08 → S09 → S10 → S11 → S12
+ * S01 → S02 → S03 → S04 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
+ *   → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
+ *   → S08 → S09 → S10 → S11 → S12
  * Native stack push/pop transitions (default). Headers are drawn per-screen
  * to match the design's custom nav bar, so the stack header is hidden here.
  */
@@ -44,9 +53,16 @@ export function RootNavigator() {
         <Stack.Screen name="S02_PurposeGuide" component={S02_PurposeGuide} />
         <Stack.Screen name="S03_IdealSample" component={S03_IdealSample} />
         <Stack.Screen name="S04_ShootingGuide" component={S04_ShootingGuide} />
+        <Stack.Screen name="PhotoInputMethod" component={PhotoInputMethod} />
+        <Stack.Screen name="CameraPermissionDenied" component={CameraPermissionDenied} />
+        <Stack.Screen name="PhotoPermissionDenied" component={PhotoPermissionDenied} />
         <Stack.Screen name="S05_Camera" component={S05_Camera} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="S06_Upload" component={S06_Upload} />
         <Stack.Screen name="S07_PhotoConfirm" component={S07_PhotoConfirm} />
+        <Stack.Screen name="PhotoCrop" component={PhotoCrop} options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="FacePosition" component={FacePosition} />
+        <Stack.Screen name="FramingSelect" component={FramingSelect} />
+        <Stack.Screen name="PhotoConfirmFinal" component={PhotoConfirmFinal} />
         <Stack.Screen name="S08_Options" component={S08_Options} />
         <Stack.Screen name="S09_FinalConfirm" component={S09_FinalConfirm} />
         <Stack.Screen name="S10_Generating" component={S10_Generating} options={{ gestureEnabled: false }} />

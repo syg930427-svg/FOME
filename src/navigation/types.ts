@@ -1,4 +1,5 @@
 export type PermissionDeniedVariant = 'camera' | 'photos' | 'notifications';
+export type InputMethod = 'camera' | 'gallery';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -11,9 +12,16 @@ export type RootStackParamList = {
   S02_PurposeGuide: undefined;
   S03_IdealSample: undefined;
   S04_ShootingGuide: undefined;
+  PhotoInputMethod: { preselect?: InputMethod };
+  CameraPermissionDenied: undefined;
+  PhotoPermissionDenied: undefined;
   S05_Camera: undefined;
   S06_Upload: undefined;
   S07_PhotoConfirm: undefined;
+  PhotoCrop: undefined;
+  FacePosition: undefined;
+  FramingSelect: undefined;
+  PhotoConfirmFinal: undefined;
   S08_Options: undefined;
   S09_FinalConfirm: undefined;
   S10_Generating: undefined;

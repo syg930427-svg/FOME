@@ -4,7 +4,8 @@ import React, { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadPhoto } from '../api';
-import { PrimaryButton, ScreenHeader } from '../components';
+import { PrimaryButton, ScreenHeader, SecondaryButton } from '../components';
+import { ErrorGlyph } from '../components/EntryIcons';
 import { RootStackParamList } from '../navigation/types';
 import { useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
@@ -22,6 +23,8 @@ export default function S05_Camera({ navigation }: Props) {
   const [facing, setFacing] = useState<CameraType>('front');
   const [torch, setTorch] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [mountError, setMountError] = useState<string | null>(null);
+  const [mountKey, setMountKey] = useState(0);
   const cameraRef = useRef<CameraView>(null);
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
@@ -37,6 +40,8 @@ export default function S05_Camera({ navigation }: Props) {
         setPhotoId(photoId);
         navigation.navigate('S07_PhotoConfirm');
       }
+    } catch {
+      setMountError('CAM_INIT_FAILED');
     } finally {
       setCapturing(false);
     }
@@ -44,6 +49,40 @@ export default function S05_Camera({ navigation }: Props) {
 
   if (!permission) {
     return <View style={styles.dark} />;
+  }
+
+  // 04-06 — camera failed to start (device busy / hardware error), not a permission issue.
+  if (mountError) {
+    return (
+      <SafeAreaView style={styles.dark} edges={['top', 'bottom']}>
+        <ScreenHeader title="촬영" closeIcon onBack={navigation.goBack} dark />
+        <View style={styles.errorBody}>
+          <View style={styles.errorIconWrap}>
+            <ErrorGlyph />
+          </View>
+          <View style={styles.errorTextBlock}>
+            <Text style={styles.errorTitle}>카메라를 시작할 수{'\n'}없었어요</Text>
+            <Text style={styles.errorText}>다른 앱이 카메라를 사용 중이거나 일시적인 오류일 수 있어요. 다시 시도해 보세요.</Text>
+          </View>
+          <Text style={styles.errorCode}>오류 코드 {mountError}</Text>
+        </View>
+        <View style={styles.errorCtaArea}>
+          <PrimaryButton
+            label="다시 시도"
+            inverse
+            onPress={() => {
+              setMountError(null);
+              setMountKey((k) => k + 1);
+            }}
+          />
+          <SecondaryButton
+            label="기존 사진으로 진행하기"
+            dark
+            onPress={() => navigation.navigate('PhotoInputMethod', { preselect: 'gallery' })}
+          />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   if (!permission.granted) {
@@ -74,7 +113,14 @@ export default function S05_Camera({ navigation }: Props) {
       />
 
       <View style={styles.previewWrap}>
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} enableTorch={torch} />
+        <CameraView
+          key={mountKey}
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing={facing}
+          enableTorch={torch}
+          onMountError={() => setMountError('CAM_INIT_FAILED')}
+        />
 
         <View pointerEvents="none" style={styles.faceGuide} />
         <View pointerEvents="none" style={styles.shoulderLine}>
@@ -114,6 +160,13 @@ export default function S05_Camera({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   dark: { flex: 1, backgroundColor: colors.cameraDark },
+  errorBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, paddingHorizontal: 32 },
+  errorIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  errorTextBlock: { alignItems: 'center', gap: 10 },
+  errorTitle: { fontSize: 21, fontWeight: '700', color: colors.inverseText, textAlign: 'center', lineHeight: 21 * 1.35 },
+  errorText: { fontSize: 14.5, color: 'rgba(255,255,255,0.7)', lineHeight: 14.5 * 1.6, textAlign: 'center' },
+  errorCode: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  errorCtaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 10 },
   permissionBody: { flex: 1, padding: spacing.screenPadding, gap: 12, justifyContent: 'center' },
   permissionTitle: { fontSize: 20, fontWeight: '700', color: colors.inverseText },
   permissionText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 8 },
