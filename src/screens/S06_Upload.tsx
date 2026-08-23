@@ -1,11 +1,14 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadPhoto } from '../api';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, TextButton } from '../components';
+import { PhotoGlyph } from '../components/EntryIcons';
+import { PermissionSheet } from '../components/PermissionSheet';
 import { RootStackParamList } from '../navigation/types';
+import { getPhotosPermission, requestPhotosPermission } from '../permissions';
 import { useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
 
@@ -14,16 +17,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'S06_Upload'>;
 export default function S06_Upload({ navigation }: Props) {
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
-  async function handlePick() {
-    // Contextual permission — requested right before the gallery opens, not at app launch.
-    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!granted) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.9,
-    });
+  async function openPicker() {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
@@ -31,6 +28,28 @@ export default function S06_Upload({ navigation }: Props) {
     const { photoId } = await uploadPhoto(asset.uri);
     setPhotoId(photoId);
     navigation.navigate('S07_PhotoConfirm');
+  }
+
+  // Contextual permission (01-06): requested right before the gallery opens, not at app launch.
+  async function handlePick() {
+    const status = await getPhotosPermission();
+    if (status === 'granted' || status === 'limited') {
+      openPicker();
+    } else if (status === 'denied') {
+      navigation.navigate('PermissionDenied', { variant: 'photos' });
+    } else {
+      setSheetVisible(true);
+    }
+  }
+
+  async function handleAllowPhotos() {
+    const status = await requestPhotosPermission();
+    setSheetVisible(false);
+    if (status === 'granted' || status === 'limited') {
+      openPicker();
+    } else {
+      navigation.navigate('PermissionDenied', { variant: 'photos' });
+    }
   }
 
   return (
@@ -72,6 +91,23 @@ export default function S06_Upload({ navigation }: Props) {
         <TextButton label="샘플 다시 보기" onPress={() => navigation.navigate('S03_IdealSample')} />
         <PrimaryButton label="갤러리에서 선택" onPress={handlePick} />
       </View>
+
+      <PermissionSheet
+        visible={sheetVisible}
+        icon={<PhotoGlyph />}
+        title="사진 접근 권한이 필요해요"
+        body="이미 가지고 있는 사진으로 만들려면 사진 접근 권한이 필요해요. 선택한 사진만 앱으로 가져와요."
+        noteTitle="전체 접근이 부담되면"
+        note="'선택한 사진만 허용'으로도 사용할 수 있어요."
+        primaryLabel="사진 접근 허용"
+        onPrimary={handleAllowPhotos}
+        secondaryLabel="앱에서 새로 촬영하기"
+        onSecondary={() => {
+          setSheetVisible(false);
+          navigation.navigate('S04_ShootingGuide');
+        }}
+        onDismiss={() => setSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }

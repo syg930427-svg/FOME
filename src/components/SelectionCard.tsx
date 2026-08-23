@@ -6,9 +6,15 @@ import { PhotoPlaceholder } from './PhotoPlaceholder';
 type Props = {
   title: string;
   description: string;
-  levelLabel: string;
-  selected: boolean;
+  levelLabel?: string;
+  selected?: boolean;
   onPress?: () => void;
+  /**
+   * false renders the 01-03 onboarding variant: no LEVEL badge, no trailing
+   * check/chevron, not pressable. Same card, non-interactive read-only mode —
+   * reused rather than re-implemented per the app-entry handoff.
+   */
+  interactive?: boolean;
 };
 
 /**
@@ -16,7 +22,29 @@ type Props = {
  * padding 14, radius 16; unselected border 1px #E1E2E4, selected border 2px #0066FF + bg #F5F9FF.
  * Right side: 22px circular check when selected, otherwise a chevron.
  */
-export function SelectionCard({ title, description, levelLabel, selected, onPress }: Props) {
+export function SelectionCard({ title, description, levelLabel, selected, onPress, interactive = true }: Props) {
+  const content = (
+    <>
+      <PhotoPlaceholder width={56} height={72} radius={8} tone={selected ? 'primary' : 'neutral'} />
+      <View style={styles.textCol}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
+        {levelLabel ? <Text style={[styles.level, selected && styles.levelSelected]}>{levelLabel}</Text> : null}
+      </View>
+      {!interactive ? null : selected ? (
+        <View style={styles.check}>
+          <Text style={styles.checkGlyph}>✓</Text>
+        </View>
+      ) : (
+        <Text style={styles.chevron}>›</Text>
+      )}
+    </>
+  );
+
+  if (!interactive) {
+    return <View style={[styles.base, styles.unselected]}>{content}</View>;
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -24,19 +52,7 @@ export function SelectionCard({ title, description, levelLabel, selected, onPres
       onPress={onPress}
       style={[styles.base, selected ? styles.selected : styles.unselected]}
     >
-      <PhotoPlaceholder width={56} height={72} radius={8} tone={selected ? 'primary' : 'neutral'} />
-      <View style={styles.textCol}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-        <Text style={[styles.level, selected && styles.levelSelected]}>{levelLabel}</Text>
-      </View>
-      {selected ? (
-        <View style={styles.check}>
-          <Text style={styles.checkGlyph}>✓</Text>
-        </View>
-      ) : (
-        <Text style={styles.chevron}>›</Text>
-      )}
+      {content}
     </Pressable>
   );
 }

@@ -4,7 +4,11 @@ import { Alert, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { generationStepLabel, getGeneration, GENERATION_STEPS } from '../api';
 import { PhotoPlaceholder, PrimaryButton, SecondaryButton } from '../components';
+import { BellGlyph } from '../components/EntryIcons';
+import { PermissionSheet } from '../components/PermissionSheet';
 import { RootStackParamList } from '../navigation/types';
+import { getNotificationsPermission, requestNotificationsPermission } from '../permissions';
+import { useAppEntry } from '../state/appEntry';
 import { useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
 
@@ -17,6 +21,34 @@ export default function S10_Generating({ navigation }: Props) {
   const [failed, setFailed] = useState(false);
   const spin = useRef(new Animated.Value(0)).current;
   const allowLeaveRef = useRef(false);
+
+  const notifPromptShown = useAppEntry((s) => s.notifPromptShown);
+  const markNotifPromptShown = useAppEntry((s) => s.markNotifPromptShown);
+  const [notifSheetVisible, setNotifSheetVisible] = useState(false);
+
+  // 01-07: fires once, right as generation starts. Declining never blocks generation.
+  useEffect(() => {
+    if (notifPromptShown) return;
+    let cancelled = false;
+    (async () => {
+      const status = await getNotificationsPermission();
+      if (!cancelled && status === 'not_determined') setNotifSheetVisible(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [notifPromptShown]);
+
+  async function handleAllowNotifications() {
+    await requestNotificationsPermission();
+    markNotifPromptShown();
+    setNotifSheetVisible(false);
+  }
+
+  function handleSkipNotifications() {
+    markNotifPromptShown();
+    setNotifSheetVisible(false);
+  }
 
   const progress = generation?.progress ?? 0;
   const stepIndex = Math.min(GENERATION_STEPS.length - 1, Math.floor((progress / 100) * GENERATION_STEPS.length));
@@ -134,6 +166,20 @@ export default function S10_Generating({ navigation }: Props) {
           </View>
         </View>
       )}
+
+      <PermissionSheet
+        visible={notifSheetVisible}
+        icon={<BellGlyph />}
+        title="완성되면 알려드릴까요?"
+        body="생성에는 20초 정도 걸려요. 알림을 켜면 앱을 닫아도 완성 시점에 바로 알려드려요."
+        checklist={['사진 생성 완료 알림', '다운로드 만료 · 결제 관련 안내']}
+        note="광고성 알림은 보내지 않아요"
+        primaryLabel="알림 받기"
+        onPrimary={handleAllowNotifications}
+        secondaryLabel="앱에서 직접 확인할게요"
+        onSecondary={handleSkipNotifications}
+        onDismiss={handleSkipNotifications}
+      />
     </SafeAreaView>
   );
 }

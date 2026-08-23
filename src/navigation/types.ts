@@ -1,4 +1,12 @@
+export type PermissionDeniedVariant = 'camera' | 'photos' | 'notifications';
+
 export type RootStackParamList = {
+  Splash: undefined;
+  Onboarding: undefined;
+  PermissionDenied: { variant: PermissionDeniedVariant };
+  UpdateRequired: undefined;
+  ServerError: undefined;
+
   S01_Purpose: undefined;
   S02_PurposeGuide: undefined;
   S03_IdealSample: undefined;

@@ -1,6 +1,11 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import Onboarding from '../screens/entry/Onboarding';
+import PermissionDenied from '../screens/entry/PermissionDenied';
+import ServerError from '../screens/entry/ServerError';
+import Splash from '../screens/entry/Splash';
+import UpdateRequired from '../screens/entry/UpdateRequired';
 import S01_Purpose from '../screens/S01_Purpose';
 import S02_PurposeGuide from '../screens/S02_PurposeGuide';
 import S03_IdealSample from '../screens/S03_IdealSample';
@@ -26,9 +31,15 @@ export function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="S01_Purpose"
+        initialRouteName="Splash"
         screenOptions={{ headerShown: false, gestureEnabled: true }}
       >
+        <Stack.Screen name="Splash" component={Splash} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Onboarding" component={Onboarding} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="PermissionDenied" component={PermissionDenied} />
+        <Stack.Screen name="UpdateRequired" component={UpdateRequired} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="ServerError" component={ServerError} />
+
         <Stack.Screen name="S01_Purpose" component={S01_Purpose} />
         <Stack.Screen name="S02_PurposeGuide" component={S02_PurposeGuide} />
         <Stack.Screen name="S03_IdealSample" component={S03_IdealSample} />

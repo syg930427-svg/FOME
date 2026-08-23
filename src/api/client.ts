@@ -13,6 +13,17 @@ import { Generation, GenerationOptions, Order, PhotoUploadResult, Policy, Purpos
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Splash-time bootstrap: policy metadata prefetch + version check, combined
+ * into one call for the mock. Always succeeds — there is no real backend to
+ * fail against yet, so 01-09 (update required) and 01-10 (server error) are
+ * implemented and reachable, but nothing in this mock routes to them.
+ */
+export async function prefetchBootstrap(): Promise<{ ok: true } | { ok: false; reason: 'update_required' | 'server_error' }> {
+  await delay(600);
+  return { ok: true };
+}
+
 /** 1. GET /v1/policies/{purposeId} */
 export async function getPolicy(purposeId: PurposeId): Promise<Policy> {
   await delay(250);
