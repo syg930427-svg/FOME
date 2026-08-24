@@ -1,6 +1,6 @@
-# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진 + 로그인/계정
+# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진 + 로그인/계정 + 설정/개인정보
 
-디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 일곱 화면 묶음을 React Native + Expo로 구현한 앱입니다.
+디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 여덟 화면 묶음을 React Native + Expo로 구현한 앱입니다.
 
 1. **MVP 핵심 플로우 12화면 (S01–S12)** — 목적 선택부터 결제까지. 디자인 기준(Golden Reference).
 2. **앱 진입 10화면 (01-01~01-10)** — Splash, 온보딩 3종, Contextual 권한 3종, 권한 거부, 강제 업데이트, 서버 오류.
@@ -18,6 +18,10 @@
 7. **로그인 및 계정 7종 (14-01~14-07)** — 로그인·회원가입·소셜 로그인 계정 선택·로그인 실패·
    로그아웃·회원 탈퇴·탈퇴 확인. 로그인은 앱 진입 조건이 아니라 결제·재다운로드처럼 계정이
    필요한 순간에만 요구되고, 항상 원래 화면으로 되돌아간다.
+8. **설정 및 개인정보 8종 (16-01~16-08)** — 설정 홈·계정 설정·알림·언어·사진 보관 정책·개인정보
+   처리방침·이용약관·오픈소스 라이선스. 목차 16 전체 신규. 얼굴 사진을 다루는 서비스이므로
+   개인정보는 법적 고지가 아니라 제품의 일부로 다룬다 — 보관 기간·삭제 방법을 약관 안에 숨기지
+   않고 사진 보관 정책(16-05)이라는 별도 화면에서 평서문으로 먼저 설명한다.
 
 ## 실행
 
@@ -41,13 +45,17 @@ src/
                            PolicyDetailModal, GenerationPackagePicker,
                            GenerationConfirmSheet, RegenerateSheet, BottomTabBar,
                            PhotoListItem, DeleteConfirmModal, OriginalPhotoModal,
-                           LogoutSheet, DeleteAccountConfirmModal)
+                           LogoutSheet, DeleteAccountConfirmModal, ToggleSwitch)
   state/session.ts        Zustand 플로우 세션 스토어 (핸드오프 README의 Session 타입) —
                            + `framing`(aspect/rotation/얼굴 크기·위치/framingId), 사진 교체 시 리셋
                            + `generationCount`(1/4/8), `freeRetryUsed`, `resultIndex`
   state/myPhotos.ts        Zustand 주문 내역 스토어 — 목차 13용 `PhotoOrder[]`, 삭제(전체/원본만/전체 초기화)
   state/auth.ts            Zustand 계정 스토어 — 목차 14용. `isLoggedIn`/`provider`/`maskedEmail`/
-                           `creditBalance`, 이메일 로그인 실패 카운터(`failedAttempts`/`lockedOut`)
+                           `displayName`/`creditBalance`, 이메일 로그인 실패 카운터
+                           (`failedAttempts`/`lockedOut`)
+  state/settings.ts        Zustand 설정 스토어 — 목차 16용. 알림 5종(`notifications`)/방해 금지
+                           시간, 언어, 사진 보관 정책, 연결된 소셜 계정(mock). 로그인 여부와
+                           무관하게 항상 조회·변경 가능해야 해서 `auth`/`myPhotos`와 분리
   state/appEntry.ts        Zustand 앱 진입 스토어 — onboardingCompleted / notifPromptShown을
                            AsyncStorage에 영속. 권한 상태 자체는 매번 OS에서 재확인(permissions.ts)
   state/toast.ts           전역 토스트 큐 — 네비게이션 전환과 함께 노출되는 확인 토스트(02-03)라
@@ -76,12 +84,20 @@ src/
   screens/MyPhotos.tsx            13-01 — 목록 + 필터 칩 + 편집 모드 + 빈 상태 + 하단 탭 바
   screens/PhotoOrderDetail.tsx    13-03 — 주문 1건 상세
   screens/ResultsGrid.tsx         13-05 — 생성 결과 다중 선택 그리드
-  screens/Settings.tsx            설정 탭 — 14-05의 베이스 화면. 로그인 여부에 따라 로그인 유도
-                                   카드 / 계정 정보 행 + 로그아웃·회원 탈퇴 행을 전환
+  screens/Settings.tsx            16-01 설정 (홈) — 탭 바 루트. 로그인 여부에 따라 로그인 유도
+                                   카드 또는 계정 행 + "내 정보" 섹션을 전환, 나머지(앱 설정/개인정보)는
+                                   로그인과 무관하게 항상 노출
   screens/Login.tsx               14-01 + 14-04 — 소셜 3종·이메일 로그인, 실패 상태는 같은 화면 내 state
   screens/SignUp.tsx              14-02 — 이메일 회원가입
   screens/AccountPicker.tsx       14-03 — 기기에 남은 소셜 계정 선택
   screens/DeleteAccount.tsx       14-06 — 회원 탈퇴 (+ 14-07 확인 모달을 같은 화면에서 관리)
+  screens/AccountSettings.tsx     16-02 — 계정 설정. 로그아웃/회원 탈퇴가 여기로 옮겨옴(구 Settings)
+  screens/NotificationSettings.tsx 16-03 — 필수/선택 알림 5종 + 방해 금지 시간, 실제 OS 알림 권한 조회
+  screens/LanguageSettings.tsx    16-04 — 언어 선택 (사진 규격 기준 국가와 분리)
+  screens/StoragePolicy.tsx       16-05 — 사진 보관 정책. 저장 현황을 실제 스토어 값에서 계산
+  screens/PrivacyPolicy.tsx       16-06 — 개인정보 처리방침 (요약 카드 + 목차 + 3조만 실제 본문)
+  screens/TermsOfService.tsx      16-07 — 이용약관 (16-06과 같은 레이아웃 패턴)
+  screens/OpenSourceLicenses.tsx  16-08 — 오픈소스 라이선스, 실검색 필터 + 탭하면 펼쳐지는 라이선스 전문
 ```
 
 같은 스택 안의 평범한 화면들일 뿐, 실제 `@react-navigation/bottom-tabs` 네비게이터는 없습니다 —
@@ -204,6 +220,31 @@ src/
 - 13-01(내 사진) 진입 시 로그인을 유도하라는 핸드오프 트리거는 구현하지 않았다 — 내 사진은 로그인
   없이도 시드 데이터로 완전히 동작해야 하고, 결제 시점 게이팅만으로 RULE을 충분히 지킬 수 있다
 
+## 설정 및 개인정보 8종 (16-01~16-08)
+
+핸드오프 노트: "얼굴 사진을 다루는 서비스이므로 개인정보 화면은 법적 고지가 아니라 제품의
+일부다. 보관 기간·삭제 방법·학습 사용 여부를 약관 안에 숨기지 않고 별도 화면(16-05)에서
+평서문으로 먼저 설명한다."
+
+| # | 화면 | 구현 |
+|---|---|---|
+| 16-01 | 설정 (홈) | `Settings` 재구성 — 프로필 행이 이제 16-02로 이어진다. "내 정보"(계정 설정/결제 내역/내 사진, 뱃지는 `useMyPhotos` 실 데이터에서 계산)는 로그인 시에만 노출, "앱 설정"/"개인정보"는 항상 노출 |
+| 16-02 | 계정 설정 | 신규 `AccountSettings` — 로그아웃/회원 탈퇴가 16-01에서 여기로 이동. 연결된 계정(Apple/Google)은 탭하면 연결/해제되는 mock, "내 데이터 내려받기"는 토스트로 흉내, "사진 전체 삭제"는 `Alert.alert` 확인 후 `useMyPhotos.clearAll()`(계정은 유지, 14-07 전체 탈퇴와는 다른 액션) |
+| 16-03 | 알림 설정 | 신규 `NotificationSettings` — 필수 알림 3종 + 선택 알림 2종 + 방해 금지 시간 토글(`ToggleSwitch` 신규 컴포넌트). 상단 배너는 `getNotificationsPermission()`으로 실제 OS 권한을 조회해 보여준다(01-07과 같은 조회 방식) |
+| 16-04 | 언어 설정 | 신규 `LanguageSettings` — 언어 4종 라디오 + "사진 규격 기준 국가"를 의도적으로 분리해 노출(해외 거주자가 잘못된 규격으로 신청하는 걸 방지). 선택을 바꿔야만 CTA가 활성화 |
+| 16-05 | 사진 보관 정책 | 신규 `StoragePolicy` — 보관 기간 3종 라디오. "지금 저장된 것"(원본/결과 장수, 가장 빠른 자동 삭제일)은 디자인의 예시 숫자를 그대로 쓰지 않고 `useMyPhotos.orders`에서 실시간 계산 |
+| 16-06 | 개인정보 처리방침 | 신규 `PrivacyPolicy` — 한 줄 요약 카드 + 6개 조항 목차. 이 배치엔 "3. 보관 및 파기"만 실제 본문이 있어 항상 펼쳐 보여주고, 다른 조항은 탭하면 "준비 중" 안내만 뜬다 |
+| 16-07 | 이용약관 | 신규 `TermsOfService` — 16-06과 같은 레이아웃(요약 카드 + 6조 목차 + 제3조 실제 본문 + 경고 배너) |
+| 16-08 | 오픈소스 라이선스 | 신규 `OpenSourceLicenses` — 실제 동작하는 검색 필터 + 행을 탭하면 펼쳐지는 라이선스 전문 아코디언. 목록은 6개뿐이라(디자인 예시는 24개) 검색창은 항상 노출로 단순화 |
+
+### 계정과 무관하게 항상 접근 가능 (adapted)
+
+핸드오프의 설정 화면은 로그인된 사용자를 전제로 그려져 있지만("김서연"), 이 앱은 목차 14부터
+"로그인은 결제 직전에만" 원칙을 지켜왔다. 그래서 16-01의 "앱 설정"/"개인정보" 두 섹션(알림·언어·
+보관 정책·법적 문서)은 로그인 여부와 무관하게 항상 보이고 조작 가능하게 두고, 계정이 실제로
+필요한 "내 정보" 섹션(계정 설정·결제 내역·내 사진)만 로그인 시에만 노출했다 — `state/settings.ts`를
+`state/auth.ts`와 분리한 이유이기도 하다.
+
 ## 지킨 제품 원칙
 
 - **RULE-01** 목적 우선 — S01에는 목적 선택 전 카메라/갤러리 CTA가 없음
@@ -254,3 +295,14 @@ src/
   UI만 있고 실제 동작은 없습니다
 - 앱을 재시작하면 로그인 상태가 초기화됩니다 — "로그인 상태 유지" 체크박스는 UI만 있고
   AsyncStorage 영속은 아직 연결하지 않았습니다
+- `src/state/settings.ts`도 세션 메모리에만 있습니다 — 알림/언어/보관 정책 선택 역시 앱을
+  재시작하면 기본값으로 돌아갑니다. AsyncStorage 영속은 아직 없습니다
+- 16-04 언어 변경은 실제로 앱을 다시 시작하거나 문자열을 번역하지 않습니다 — `useSettings.language`
+  값만 바뀔 뿐, i18n 런타임이 아직 이 프로젝트에 없습니다
+- 16-06/16-07의 법적 문서는 "보관 및 파기"/"이용자의 의무" 조항만 실제 본문이 있고, 나머지 5개
+  조항은 탭하면 "준비 중" 안내만 뜹니다 — "전체 문서 내려받기"도 실제 PDF 생성 없이 토스트로만
+  흉내 냅니다
+- 16-08 오픈소스 라이선스 목록은 실제 `package.json` 의존성 전수 스캔이 아니라 대표 라이브러리
+  6개만 수록한 예시 데이터입니다
+- 16-04 "사진 규격 기준 국가"와 16-02 "프로필 사진 변경"/"이름" 편집은 탭해도 안내만 뜨는
+  자리표시자입니다 — 실제 국가 선택기·이미지 피커·이름 입력 폼은 아직 없습니다

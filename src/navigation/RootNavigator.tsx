@@ -7,18 +7,23 @@ import ServerError from '../screens/entry/ServerError';
 import Splash from '../screens/entry/Splash';
 import UpdateRequired from '../screens/entry/UpdateRequired';
 import AccountPicker from '../screens/AccountPicker';
+import AccountSettings from '../screens/AccountSettings';
 import CameraPermissionDenied from '../screens/CameraPermissionDenied';
 import DeleteAccount from '../screens/DeleteAccount';
 import FacePosition from '../screens/FacePosition';
 import FramingSelect from '../screens/FramingSelect';
 import GenerationStarted from '../screens/GenerationStarted';
+import LanguageSettings from '../screens/LanguageSettings';
 import Login from '../screens/Login';
 import MyPhotos from '../screens/MyPhotos';
+import NotificationSettings from '../screens/NotificationSettings';
+import OpenSourceLicenses from '../screens/OpenSourceLicenses';
 import PhotoConfirmFinal from '../screens/PhotoConfirmFinal';
 import PhotoCrop from '../screens/PhotoCrop';
 import PhotoInputMethod from '../screens/PhotoInputMethod';
 import PhotoOrderDetail from '../screens/PhotoOrderDetail';
 import PhotoPermissionDenied from '../screens/PhotoPermissionDenied';
+import PrivacyPolicy from '../screens/PrivacyPolicy';
 import ResultsGrid from '../screens/ResultsGrid';
 import S01_Purpose from '../screens/S01_Purpose';
 import S02_PurposeGuide from '../screens/S02_PurposeGuide';
@@ -34,6 +39,8 @@ import S11_Preview from '../screens/S11_Preview';
 import S12_Payment from '../screens/S12_Payment';
 import Settings from '../screens/Settings';
 import SignUp from '../screens/SignUp';
+import StoragePolicy from '../screens/StoragePolicy';
+import TermsOfService from '../screens/TermsOfService';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,9 +59,14 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  *
  * 목차 14 (Login/SignUp/AccountPicker/DeleteAccount) is never an app-entry
  * gate — it's only ever pushed right before a step that needs an account
- * (S12_Payment's pay button, or Settings' 로그인/회원 탈퇴 rows) and always
- * pops back to whoever pushed it (`goBack()`/`pop(2)`), so none of them
- * take route params.
+ * (S12_Payment's pay button, or Settings' 로그인 row) and always pops back
+ * to whoever pushed it (`goBack()`/`pop(2)`), so none of them take route
+ * params.
+ *
+ * 목차 16 (AccountSettings/NotificationSettings/LanguageSettings/
+ * StoragePolicy/PrivacyPolicy/TermsOfService/OpenSourceLicenses) all hang
+ * off Settings (16-01) and pop back via `goBack()` — same no-params
+ * convention. 로그아웃/회원 탈퇴 now live on AccountSettings, not Settings.
  */
 export function RootNavigator() {
   return (
@@ -99,6 +111,14 @@ export function RootNavigator() {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="AccountPicker" component={AccountPicker} />
         <Stack.Screen name="DeleteAccount" component={DeleteAccount} />
+
+        <Stack.Screen name="AccountSettings" component={AccountSettings} />
+        <Stack.Screen name="NotificationSettings" component={NotificationSettings} />
+        <Stack.Screen name="LanguageSettings" component={LanguageSettings} />
+        <Stack.Screen name="StoragePolicy" component={StoragePolicy} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+        <Stack.Screen name="TermsOfService" component={TermsOfService} />
+        <Stack.Screen name="OpenSourceLicenses" component={OpenSourceLicenses} />
       </Stack.Navigator>
     </NavigationContainer>
   );

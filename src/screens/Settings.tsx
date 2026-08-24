@@ -1,47 +1,46 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BottomTabBar, LogoutSheet, PrimaryButton, TabKey } from '../components';
+import { APP_VERSION_LABEL, LANGUAGE_OPTIONS, RETENTION_OPTIONS, SUPPORT_EMAIL } from '../api';
+import { BottomTabBar, PrimaryButton, TabKey } from '../components';
 import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/auth';
-import { useSession } from '../state/session';
+import { useMyPhotos } from '../state/myPhotos';
+import { useSettings } from '../state/settings';
 import { colors, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
-const KRW = new Intl.NumberFormat('ko-KR');
-
-const PROVIDER_LABEL: Record<string, string> = {
-  kakao: '카카오 로그인',
-  apple: 'Apple 로그인',
-  google: 'Google 로그인',
-  email: '이메일 로그인',
-};
-
 /**
- * 설정 탭 — doubles as 14-05 로그아웃의 base screen. Logged-out state shows a
- * login prompt instead of the account row (RULE: 로그인은 결제 직전에만, so
- * this is an invitation, not a gate).
+ * 16-01 설정 (홈) — doubles as the tab-bar root. 로그아웃/회원 탈퇴는 여기서
+ * 빠지고 계정 설정(16-02)으로 옮겨갔다 — 프로필 행을 누르면 그리로 간다.
+ * Logged-out state keeps the 목차 14 login-prompt card (RULE: 로그인은
+ * 결제 직전에만) but still shows 앱 설정/개인정보 — 그건 계정과 무관하다.
  */
 export default function Settings({ navigation }: Props) {
   const isLoggedIn = useAuth((s) => s.isLoggedIn);
   const provider = useAuth((s) => s.provider);
+  const displayName = useAuth((s) => s.displayName);
   const maskedEmail = useAuth((s) => s.maskedEmail);
-  const creditBalance = useAuth((s) => s.creditBalance);
-  const logout = useAuth((s) => s.logout);
-  const photo = useSession((s) => s.photo);
+  const orders = useMyPhotos((s) => s.orders);
+  const notifications = useSettings((s) => s.notifications);
+  const language = useSettings((s) => s.language);
+  const retentionPolicy = useSettings((s) => s.retentionPolicy);
 
-  const [logoutVisible, setLogoutVisible] = useState(false);
+  const photoCount = useMemo(() => orders.reduce((sum, o) => sum + o.resultCount, 0), [orders]);
+  const orderCount = orders.length;
+  const notifOn = notifications.photoComplete || notifications.paymentRefund || notifications.deletionWarning;
+  const languageLabel = LANGUAGE_OPTIONS.find((l) => l.code === language)?.label ?? '한국어';
+  const retentionLabel = RETENTION_OPTIONS.find((r) => r.id === retentionPolicy)?.shortLabel ?? '30일 후 자동 삭제';
 
   function handleSelectTab(tab: TabKey) {
     if (tab === 'home') navigation.navigate('S01_Purpose');
     else if (tab === 'myPhotos') navigation.navigate('MyPhotos');
   }
 
-  function handleConfirmLogout() {
-    setLogoutVisible(false);
-    logout();
+  function handleContact() {
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('AI 증명사진 문의')}`);
   }
 
   return (
@@ -52,15 +51,14 @@ export default function Settings({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {isLoggedIn ? (
-          <View style={styles.accountRow}>
-            <View style={[styles.avatar, { backgroundColor: provider === 'kakao' ? '#FEE500' : colors.surfaceSubtleAlt }]} />
+          <Pressable style={styles.accountRow} onPress={() => navigation.navigate('AccountSettings')}>
+            <View style={[styles.avatar, { backgroundColor: provider === 'kakao' ? '#FEE500' : colors.primaryTintStrong }]} />
             <View style={styles.accountTextCol}>
-              <Text style={styles.accountTitle}>{maskedEmail || '내 계정'}</Text>
-              <Text style={styles.accountSubtitle}>
-                {PROVIDER_LABEL[provider ?? 'email']} · 크레딧 {KRW.format(creditBalance)}원
-              </Text>
+              <Text style={styles.accountTitle}>{displayName || '내 계정'}</Text>
+              <Text style={styles.accountSubtitle}>{maskedEmail}</Text>
             </View>
-          </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
         ) : (
           <View style={styles.loginPromptCard}>
             <View style={styles.loginPromptTextCol}>
@@ -71,42 +69,79 @@ export default function Settings({ navigation }: Props) {
           </View>
         )}
 
-        <View style={styles.menuBox}>
-          <MenuRow label="알림 설정" />
-          <MenuRow label="결제 내역" />
-          <MenuRow label="약관 및 개인정보" last />
-        </View>
-
         {isLoggedIn && (
-          <View style={styles.menuBox}>
-            <Pressable style={styles.menuRow} onPress={() => setLogoutVisible(true)}>
-              <Text style={styles.menuRowTextStrong}>로그아웃</Text>
-            </Pressable>
-            <Pressable style={[styles.menuRow, styles.menuRowLast]} onPress={() => navigation.navigate('DeleteAccount')}>
-              <Text style={styles.menuRowTextMuted}>회원 탈퇴</Text>
-            </Pressable>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>내 정보</Text>
+            <View style={styles.box}>
+              <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('AccountSettings')}>
+                <Text style={styles.rowText}>계정 설정</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+              <View style={[styles.row, styles.rowDivider]}>
+                <Text style={styles.rowText}>결제 내역</Text>
+                <Text style={styles.rowBadge}>{orderCount}건</Text>
+                <Text style={styles.chevron}>›</Text>
+              </View>
+              <Pressable style={styles.row} onPress={() => navigation.navigate('MyPhotos')}>
+                <Text style={styles.rowText}>내 사진</Text>
+                <Text style={styles.rowBadge}>{photoCount}장</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            </View>
           </View>
         )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>앱 설정</Text>
+          <View style={styles.box}>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('NotificationSettings')}>
+              <Text style={styles.rowText}>알림</Text>
+              <Text style={styles.rowBadge}>{notifOn ? '켜짐' : '꺼짐'}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={styles.row} onPress={() => navigation.navigate('LanguageSettings')}>
+              <Text style={styles.rowText}>언어</Text>
+              <Text style={styles.rowBadge}>{languageLabel}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>개인정보</Text>
+          <View style={styles.box}>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('StoragePolicy')}>
+              <View style={styles.rowTextCol}>
+                <Text style={styles.rowText}>사진 보관 정책</Text>
+                <Text style={styles.rowBadgeInline}>{retentionLabel}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('PrivacyPolicy')}>
+              <Text style={styles.rowText}>개인정보 처리방침</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('TermsOfService')}>
+              <Text style={styles.rowText}>이용약관</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={styles.row} onPress={() => navigation.navigate('OpenSourceLicenses')}>
+              <Text style={styles.rowText}>오픈소스 라이선스</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>버전 {APP_VERSION_LABEL}</Text>
+          <Text style={styles.footerLink} onPress={handleContact}>
+            문의하기
+          </Text>
+        </View>
       </ScrollView>
 
       <BottomTabBar active="settings" onSelect={handleSelectTab} />
-
-      <LogoutSheet
-        visible={logoutVisible}
-        onDismiss={() => setLogoutVisible(false)}
-        onConfirm={handleConfirmLogout}
-        hasInProgressWork={photo !== null}
-      />
     </SafeAreaView>
-  );
-}
-
-function MenuRow({ label, last }: { label: string; last?: boolean }) {
-  return (
-    <View style={[styles.menuRow, last && styles.menuRowLast]}>
-      <Text style={styles.menuRowText}>{label}</Text>
-      <Text style={styles.menuRowChevron}>›</Text>
-    </View>
   );
 }
 
@@ -114,9 +149,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
   header: { paddingHorizontal: spacing.screenPadding, paddingTop: 4, paddingBottom: 16 },
   title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5, color: colors.textPrimary },
-  scrollContent: { paddingHorizontal: spacing.screenPadding, gap: 11, paddingBottom: 24 },
-  accountRow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
-  avatar: { width: 44, height: 44, borderRadius: 22 },
+  scrollContent: { paddingHorizontal: spacing.screenPadding, gap: 18, paddingBottom: 24 },
+  accountRow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, borderRadius: 16, backgroundColor: colors.surfaceSubtle },
+  avatar: { width: 46, height: 46, borderRadius: 23 },
   accountTextCol: { flex: 1, gap: 3 },
   accountTitle: { fontSize: 15.5, fontWeight: '700', color: colors.textPrimary },
   accountSubtitle: { fontSize: 12.5, color: colors.textTertiary },
@@ -125,11 +160,17 @@ const styles = StyleSheet.create({
   loginPromptTitle: { fontSize: 15.5, fontWeight: '700', color: colors.textPrimary },
   loginPromptSubtitle: { fontSize: 12.5, lineHeight: 12.5 * 1.5, color: colors.infoText },
   loginPromptButton: { height: 44 },
-  menuBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, overflow: 'hidden' },
-  menuRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
-  menuRowLast: { borderBottomWidth: 0 },
-  menuRowText: { flex: 1, fontSize: 14.5, fontWeight: '600', color: colors.textPrimary },
-  menuRowChevron: { fontSize: 17, color: colors.textDisabledAlt },
-  menuRowTextStrong: { flex: 1, fontSize: 14.5, fontWeight: '700', color: colors.textPrimary },
-  menuRowTextMuted: { flex: 1, fontSize: 14.5, fontWeight: '600', color: colors.textTertiary },
+  section: { gap: 9 },
+  sectionLabel: { fontSize: 12.5, fontWeight: '700', color: colors.textTertiary },
+  box: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 6 },
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+  rowTextCol: { flex: 1, gap: 2 },
+  rowText: { flex: 1, fontSize: 14.5, fontWeight: '600', color: colors.textPrimary },
+  rowBadge: { fontSize: 13, color: colors.textTertiary, marginRight: 2 },
+  rowBadgeInline: { fontSize: 12, color: colors.primary },
+  chevron: { fontSize: 18, color: colors.textDisabledAlt },
+  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
+  footerText: { fontSize: 12.5, color: colors.textDisabled },
+  footerLink: { fontSize: 12.5, fontWeight: '700', color: colors.primary },
 });

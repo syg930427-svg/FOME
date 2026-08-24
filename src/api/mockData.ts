@@ -1,4 +1,5 @@
 import type { FramingId } from '../state/session';
+import type { LanguageCode, RetentionPolicyId } from '../state/settings';
 import { Policy, PurposeId } from './types';
 
 export const PURPOSES: {
@@ -277,3 +278,112 @@ export const INITIAL_MY_PHOTO_ORDERS: PhotoOrder[] = [
     watermarked: false,
   },
 ];
+
+// 목차 16 — 설정 및 개인정보.
+
+export const LANGUAGE_OPTIONS: { code: LanguageCode; label: string; subtitle: string }[] = [
+  { code: 'ko', label: '한국어', subtitle: '기기 언어와 같아요' },
+  { code: 'en', label: 'English', subtitle: '영어' },
+  { code: 'ja', label: '日本語', subtitle: '일본어' },
+  { code: 'zh-CN', label: '中文(简体)', subtitle: '중국어 간체' },
+];
+
+export const RETENTION_OPTIONS: { id: RetentionPolicyId; label: string; subtitle: string; shortLabel: string }[] = [
+  { id: 'immediate', label: '주문 후 바로 삭제', subtitle: '다시 받기 불가', shortLabel: '즉시 삭제' },
+  { id: '30days', label: '30일 보관 (권장)', subtitle: '기간 내 다시 받을 수 있어요', shortLabel: '30일 후 자동 삭제' },
+  { id: '1year', label: '1년 보관', subtitle: '재발급이 잦은 경우', shortLabel: '1년 후 자동 삭제' },
+];
+
+export type OpenSourceLibrary = { id: string; name: string; license: string; licenseText: string };
+
+export const OPEN_SOURCE_LIBRARIES: OpenSourceLibrary[] = [
+  {
+    id: 'react-native',
+    name: 'React Native',
+    license: 'MIT License',
+    licenseText: 'Copyright (c) Meta Platforms, Inc. and affiliates.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction.',
+  },
+  {
+    id: 'pretendard',
+    name: 'Pretendard',
+    license: 'SIL Open Font License 1.1',
+    licenseText: 'Copyright 2021 Kil Hyung-jin, with Reserved Font Name Pretendard.\n\nLicensed under the SIL Open Font License, Version 1.1.',
+  },
+  {
+    id: 'wanted-sans',
+    name: 'Wanted Sans',
+    license: 'SIL Open Font License 1.1',
+    licenseText: 'Copyright 2023 Wanted Lab Inc., with Reserved Font Name Wanted Sans.\n\nLicensed under the SIL Open Font License, Version 1.1.',
+  },
+  {
+    id: 'tensorflow-lite',
+    name: 'TensorFlow Lite',
+    license: 'Apache License 2.0',
+    licenseText: 'Copyright 2019 The TensorFlow Authors.\n\nLicensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.',
+  },
+  {
+    id: 'vision-camera',
+    name: 'react-native-vision-camera',
+    license: 'MIT License',
+    licenseText: 'Copyright (c) 2021 mrousavy.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction.',
+  },
+  {
+    id: 'react-native-svg',
+    name: 'react-native-svg',
+    license: 'MIT License',
+    licenseText: 'Copyright (c) 2015-present, react-native-community.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction.',
+  },
+];
+
+export const APP_VERSION_LABEL = '1.4.2';
+export const APP_VERSION_BUILD_LABEL = '1.4.2 (2608)';
+export const SUPPORT_EMAIL = 'support@aiphoto.example.com';
+
+export const PRIVACY_POLICY_VERSION = '2026.06.01';
+export const PRIVACY_POLICY_PREVIOUS_VERSION = '2025.11.01';
+
+export const PRIVACY_POLICY_SUMMARY = [
+  '얼굴 사진은 주문 처리에만 씁니다',
+  'AI 학습에 쓰지 않습니다',
+  '기본 30일 후 자동 삭제합니다',
+  '언제든 전체 삭제를 요청할 수 있습니다',
+];
+
+export const PRIVACY_POLICY_SECTIONS: { n: number; title: string }[] = [
+  { n: 1, title: '수집하는 정보' },
+  { n: 2, title: '이용 목적' },
+  { n: 3, title: '보관 및 파기' },
+  { n: 4, title: '처리 위탁 및 국외 이전' },
+  { n: 5, title: '이용자의 권리' },
+  { n: 6, title: '개인정보 보호책임자' },
+];
+
+export const PRIVACY_POLICY_DETAIL = {
+  sectionLabel: '3.',
+  title: '보관 및 파기',
+  body: '회사는 이용자가 업로드한 원본 사진과 생성된 결과 사진을 이용자가 설정한 보관 기간(기본 30일) 동안 저장하며, 기간이 지나면 복구할 수 없는 방식으로 자동 삭제합니다. 이용자가 삭제를 요청한 경우 지체 없이 파기합니다.',
+};
+
+export const TERMS_VERSION = '2026.06.01';
+
+export const TERMS_SUMMARY = [
+  '본인의 얼굴 사진만 올릴 수 있어요',
+  '제출 기관의 승인 여부는 보장하지 않아요',
+  '다운로드 후에는 환불이 제한돼요',
+];
+
+export const TERMS_SECTIONS: { n: string; title: string }[] = [
+  { n: '1조', title: '목적 및 정의' },
+  { n: '2조', title: '서비스 내용' },
+  { n: '3조', title: '이용자의 의무' },
+  { n: '4조', title: '결제 및 환불' },
+  { n: '5조', title: '지식재산권' },
+  { n: '6조', title: '책임의 제한' },
+];
+
+export const TERMS_DETAIL = {
+  sectionLabel: '제3조',
+  title: '이용자의 의무',
+  body: '이용자는 본인의 얼굴이 촬영된 사진만을 업로드해야 하며, 타인의 사진이나 초상권을 침해하는 이미지를 업로드해서는 안 됩니다. 신분증 사진의 위조·변조 목적으로 서비스를 이용하는 경우 이용이 제한될 수 있습니다.',
+  warning: '제출 기관의 규격 심사 결과는 기관 재량이며, 반려에 대한 환불은 제공하지 않아요.',
+};

@@ -44,4 +44,14 @@ export type RootStackParamList = {
   SignUp: undefined;
   AccountPicker: undefined;
   DeleteAccount: undefined;
+
+  // 목차 16 — 설정 및 개인정보. All pushed from Settings (16-01) and popped
+  // back via goBack() — no route params, same convention as 목차 14.
+  AccountSettings: undefined;
+  NotificationSettings: undefined;
+  LanguageSettings: undefined;
+  StoragePolicy: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
+  OpenSourceLicenses: undefined;
 };
