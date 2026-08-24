@@ -1,6 +1,6 @@
-# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성
+# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진
 
-디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 다섯 화면 묶음을 React Native + Expo로 구현한 앱입니다.
+디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 여섯 화면 묶음을 React Native + Expo로 구현한 앱입니다.
 
 1. **MVP 핵심 플로우 12화면 (S01–S12)** — 목적 선택부터 결제까지. 디자인 기준(Golden Reference).
 2. **앱 진입 10화면 (01-01~01-10)** — Splash, 온보딩 3종, Contextual 권한 3종, 권한 거부, 강제 업데이트, 서버 오류.
@@ -12,6 +12,9 @@
 5. **최종 설정·AI 생성 10종 (07-02~07-05, 08-02~08-07)** — 결제 전 확인 계층(정책 상세·수량/비용·
    최종 확인·생성 시작)과 생성 중 성공/실패/취소 상태. SCREEN-09/10은 EXISTING이라 재사용, 07-01·
    08-01이 그 자리다.
+6. **내 사진 7종 (13-01~13-07)** — 구매 내역/보관 중인 결과 목록, 상세, 원본 뷰어, 결과 재다운로드,
+   삭제 확인·완료. 첫 결제 후 재방문의 축이 되는 완전히 새로운 영역이라 목적 선택 화면(S01)과
+   함께 하단 탭 바를 처음 도입했다.
 
 ## 실행
 
@@ -33,10 +36,12 @@ src/
                            ScreenHeader, PhotoPlaceholder, PermissionSheet, EntryIcons,
                            FramingPreview, PhotoZoomModal, ReplacePhotoSheet,
                            PolicyDetailModal, GenerationPackagePicker,
-                           GenerationConfirmSheet, RegenerateSheet)
+                           GenerationConfirmSheet, RegenerateSheet, BottomTabBar,
+                           PhotoListItem, DeleteConfirmModal, OriginalPhotoModal)
   state/session.ts        Zustand 플로우 세션 스토어 (핸드오프 README의 Session 타입) —
                            + `framing`(aspect/rotation/얼굴 크기·위치/framingId), 사진 교체 시 리셋
                            + `generationCount`(1/4/8), `freeRetryUsed`, `resultIndex`
+  state/myPhotos.ts        Zustand 주문 내역 스토어 — 목차 13용 `PhotoOrder[]`, 삭제(전체/원본만)
   state/appEntry.ts        Zustand 앱 진입 스토어 — onboardingCompleted / notifPromptShown을
                            AsyncStorage에 영속. 권한 상태 자체는 매번 OS에서 재확인(permissions.ts)
   state/toast.ts           전역 토스트 큐 — 네비게이션 전환과 함께 노출되는 확인 토스트(02-03)라
@@ -62,7 +67,15 @@ src/
   screens/PhotoConfirmFinal.tsx   05-15 — 요약 확정 → 목차 06(옵션)
   screens/GenerationStarted.tsx   07-05 — 결제 완료 → 생성 큐잉 전환 화면
   screens/S01_Purpose.tsx … S12_Payment.tsx (S09/S10에 07·08 STATE/MODAL 통합)
+  screens/MyPhotos.tsx            13-01 — 목록 + 필터 칩 + 편집 모드 + 빈 상태 + 하단 탭 바
+  screens/PhotoOrderDetail.tsx    13-03 — 주문 1건 상세
+  screens/ResultsGrid.tsx         13-05 — 생성 결과 다중 선택 그리드
+  screens/Settings.tsx            설정 탭 자리표시자(이 배치엔 디자인 없음)
 ```
+
+같은 스택 안의 평범한 화면들일 뿐, 실제 `@react-navigation/bottom-tabs` 네비게이터는 없습니다 —
+`S01_Purpose`/`MyPhotos`/`Settings` 세 화면만 각자 `<BottomTabBar>`를 마지막 자식으로 그려서
+탭 전환처럼 보이게 합니다. 자세한 이유는 아래 "내 사진 7종" 절 참고.
 
 ## 앱 진입 화면 — 중복 정리 방침
 
@@ -127,6 +140,30 @@ src/
 | 08-06 | 네트워크 오류 | S10 내부 상태 — 상단 배너 + 재연결 UI. `getGeneration` throw를 이 상태로 매핑했지만 mock은 던지지 않아 dormant |
 | 08-07 | 생성 시간 초과 | S10 내부 상태 — 경과 180초 시 실제로 전환되는 타이머 로직(로컬 `elapsed` state). mock은 8초 내 완료되어 데모에서는 도달하지 않음 |
 
+## 내 사진 7종 (13-01~13-07)
+
+핸드오프 노트: "첫 구매 이후 재방문의 축. 확인하려는 건 세 가지뿐 — 사진이 아직 있는가, 다시 받을
+수 있는가, 지울 수 있는가. 원본 얼굴은 민감정보이므로 보관 기한과 삭제를 항상 눈에 보이게 둔다."
+
+| # | 화면 | 구현 |
+|---|---|---|
+| 13-01 | 내 사진 | 신규 `MyPhotos` — 필터 칩(전체/목적별), 편집 모드(다중 선택+일괄 삭제), 빈 상태, "새 사진 만들기" → S01. 목록 자체가 `useMyPhotos` 스토어를 구독하므로 삭제 직후가 곧 13-07 |
+| 13-02 | 사진 목록 (컴포넌트 스펙) | 신규 `PhotoListItem` — DEFAULT/EDIT MODE(체크박스) 두 상태 구현. **SWIPE ACTION은 구현하지 않음**(아래 참고) |
+| 13-03 | 사진 상세 | 신규 `PhotoOrderDetail` — 스펙 표 4행 + 액션 3행(원본 보기/결과 보기/삭제), 주 CTA는 항상 "다시 받기" |
+| 13-04 | 원본 사진 보기 (모달) | 신규 `OriginalPhotoModal` — 어두운 단독 뷰어 + 7일 자동 삭제 고지. "이 원본으로 다시 만들기"는 목적/정책을 다시 불러와 `S04_ShootingGuide`로 이어감(이 mock엔 저장된 원본 픽셀이 없어 S07로 바로 못 감) |
+| 13-05 | 생성 결과 보기 | 신규 `ResultsGrid` — 다중 선택 그리드, 인화용 시트 행, 저장/공유는 Alert로 흉내만 냄(실제 파일 저장 없음) |
+| 13-06 | 사진 삭제 확인 (모달) | 신규 `DeleteConfirmModal` — "원본과 결과 모두" / "원본만" 범위 선택. `useMyPhotos.deleteOrder(id, scope)` |
+| 13-07 | 사진 삭제 완료 | 별도 화면이 아니라 13-01 자체 — 삭제 후 목록이 줄고 전역 `state/toast.ts`로 "사진을 삭제했어요" 토스트 |
+
+### 왜 진짜 탭 네비게이터가 아닌가
+
+핸드오프가 처음으로 하단 탭 바(홈/내 사진/설정)를 요구했지만, 이 앱의 S02~S12 화면 40여 개 중
+어디에도 탭 바가 그려진 목업이 없다 — 탭 바는 오직 13-01(및 13-07)에만 나타난다. 그래서
+`@react-navigation/bottom-tabs`로 전체를 감싸는 대신, **탭의 "루트"인 세 화면(`S01_Purpose`,
+`MyPhotos`, `Settings`)만 각자 `<BottomTabBar>`를 마지막 자식으로 렌더**하고 나머지는 지금까지와
+똑같이 하나의 플랫 스택 안에서 push/pop됩니다. 장점: 기존 60여 개 화면의 `RootStackParamList`
+타입을 전혀 바꾸지 않아도 되고, 중첩 네비게이터 간 타입 교차 문제가 아예 생기지 않습니다.
+
 ## 지킨 제품 원칙
 
 - **RULE-01** 목적 우선 — S01에는 목적 선택 전 카메라/갤러리 CTA가 없음
@@ -163,3 +200,11 @@ src/
   실패·타임아웃을 반환하거나 오프라인이 되면 그대로 작동합니다
 - S11/S12는 이번 배치(07-05)에 포함되지 않아 `resultIndex`를 아직 반영하지 않습니다 — 항상 세션의
   원본 사진을 보여주며, 그리드에서 고른 특정 결과 이미지를 표시하지는 않습니다
+- `PhotoListItem`의 SWIPE ACTION(스와이프해서 삭제)은 구현하지 않았습니다 — `react-native-gesture-handler`
+  가 필요해 편집 모드의 다중 선택 삭제로 대체했고, 결과는 동일(13-06 확인 모달을 거쳐 삭제)합니다
+- `MyPhotos`/`ResultsGrid`의 "공유"·"저장"·"인화용 시트 받기"는 실제 파일 I/O 없이 `Alert`로만
+  확인해줍니다 — OS 공유 시트나 사진 라이브러리 저장은 아직 연결되지 않았습니다
+- 목차 13의 주문 데이터(`INITIAL_MY_PHOTO_ORDERS`)는 실제 생성 흐름(S09→S10→S11→S12)이 끝나도
+  자동으로 추가되지 않는 정적 시드 데이터입니다 — 완료된 주문을 `useMyPhotos`에 기록하는 연결은
+  아직 없습니다
+- "설정" 탭은 이번 핸드오프 어디에도 디자인이 없어 자리표시자만 있습니다

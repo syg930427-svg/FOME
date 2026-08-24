@@ -15,3 +15,8 @@ export { GenerationPackagePicker } from './GenerationPackagePicker';
 export { GenerationConfirmSheet } from './GenerationConfirmSheet';
 export { RegenerateSheet } from './RegenerateSheet';
 export type { RegenerateChoice } from './RegenerateSheet';
+export { BottomTabBar } from './BottomTabBar';
+export type { TabKey } from './BottomTabBar';
+export { PhotoListItem } from './PhotoListItem';
+export { DeleteConfirmModal } from './DeleteConfirmModal';
+export { OriginalPhotoModal } from './OriginalPhotoModal';

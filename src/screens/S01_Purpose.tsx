@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPolicy, PURPOSES } from '../api';
 import { PurposeId } from '../api/types';
-import { PrimaryButton, SelectionCard } from '../components';
+import { BottomTabBar, PrimaryButton, SelectionCard, TabKey } from '../components';
 import { RootStackParamList } from '../navigation/types';
 import { useSession } from '../state/session';
 import { useToast } from '../state/toast';
@@ -30,6 +30,11 @@ export default function S01_Purpose({ navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const selected = PURPOSES.find((p) => p.id === selectedId) ?? null;
+
+  function handleSelectTab(tab: TabKey) {
+    if (tab === 'myPhotos') navigation.navigate('MyPhotos');
+    else if (tab === 'settings') navigation.navigate('Settings');
+  }
 
   async function handleSubmit() {
     if (!selected || submitting) return;
@@ -89,6 +94,8 @@ export default function S01_Purpose({ navigation }: Props) {
           onPress={handleSubmit}
         />
       </View>
+
+      <BottomTabBar active="home" onSelect={handleSelectTab} />
     </SafeAreaView>
   );
 }

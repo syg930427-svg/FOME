@@ -12,4 +12,6 @@ export {
   MOCK_CREDIT_BALANCE,
   POLICY_DETAILS,
   POLICY_AI_DOES_NOT,
+  INITIAL_MY_PHOTO_ORDERS,
 } from './mockData';
+export type { OrderStatus, PhotoOrder } from './mockData';

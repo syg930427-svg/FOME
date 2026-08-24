@@ -28,4 +28,12 @@ export type RootStackParamList = {
   S10_Generating: undefined;
   S11_Preview: undefined;
   S12_Payment: undefined;
+
+  // 목차 13 — 내 사진. Plain screens in the same stack as everything above (no
+  // real tab navigator) — S01_Purpose/MyPhotos/Settings each render their own
+  // BottomTabBar as their last child, so tab-switching is just `.navigate()`.
+  MyPhotos: undefined;
+  PhotoOrderDetail: { orderId: string };
+  ResultsGrid: { orderId: string };
+  Settings: undefined;
 };

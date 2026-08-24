@@ -202,3 +202,78 @@ export const PRODUCTS = [
     price: 5900,
   },
 ];
+
+/** 목차 13 — 내 사진. Past generation orders; "구매 완료" carries a real product, "미결제" ones are watermarked and self-expire. */
+export type OrderStatus = 'purchased' | 'unpaid' | 'expired';
+
+export type PhotoOrder = {
+  id: string;
+  purposeId: PurposeId;
+  title: string;
+  createdLabel: string;
+  createdFullLabel: string;
+  resultCount: number;
+  productShort: string | null;
+  productFullLabel: string;
+  status: OrderStatus;
+  metaLabel: string;
+  expiryDetailLabel: string;
+  originalDeleteLabel: string | null;
+  originalDeleteDetailLabel: string | null;
+  tone: 'primary' | 'neutral';
+  watermarked: boolean;
+};
+
+export const INITIAL_MY_PHOTO_ORDERS: PhotoOrder[] = [
+  {
+    id: 'order_passport_0824',
+    purposeId: 'passport',
+    title: '여권 사진',
+    createdLabel: '8월 24일',
+    createdFullLabel: '2026년 8월 24일',
+    resultCount: 4,
+    productShort: '프리미엄',
+    productFullLabel: '프리미엄 · 3,900원',
+    status: 'purchased',
+    metaLabel: '9월 23일까지 다시 받기 가능',
+    expiryDetailLabel: '9월 23일 (30일 남음)',
+    originalDeleteLabel: '8월 31일 자동 삭제 예정',
+    originalDeleteDetailLabel: '8월 31일에 서버에서 완전히 지워져요',
+    tone: 'primary',
+    watermarked: false,
+  },
+  {
+    id: 'order_job_0821',
+    purposeId: 'job',
+    title: '이력서 사진',
+    createdLabel: '8월 21일',
+    createdFullLabel: '2026년 8월 21일',
+    resultCount: 4,
+    productShort: null,
+    productFullLabel: '미결제 · 워터마크 포함',
+    status: 'unpaid',
+    metaLabel: '9월 20일에 자동 삭제돼요',
+    expiryDetailLabel: '9월 20일 (미결제 · 27일 남음)',
+    originalDeleteLabel: '8월 28일 자동 삭제 예정',
+    originalDeleteDetailLabel: '8월 28일에 서버에서 완전히 지워져요',
+    tone: 'neutral',
+    watermarked: true,
+  },
+  {
+    id: 'order_passport_0702',
+    purposeId: 'passport',
+    title: '여권 사진',
+    createdLabel: '7월 2일',
+    createdFullLabel: '2026년 7월 2일',
+    resultCount: 4,
+    productShort: '기본',
+    productFullLabel: '기본 · 2,900원',
+    status: 'expired',
+    metaLabel: '보관 기한 지남 · 재구매 필요',
+    expiryDetailLabel: '8월 1일에 만료됨',
+    originalDeleteLabel: null,
+    originalDeleteDetailLabel: null,
+    tone: 'primary',
+    watermarked: false,
+  },
+];
