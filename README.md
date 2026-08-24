@@ -1,6 +1,6 @@
-# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진
+# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진 + 로그인/계정
 
-디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 여섯 화면 묶음을 React Native + Expo로 구현한 앱입니다.
+디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 일곱 화면 묶음을 React Native + Expo로 구현한 앱입니다.
 
 1. **MVP 핵심 플로우 12화면 (S01–S12)** — 목적 선택부터 결제까지. 디자인 기준(Golden Reference).
 2. **앱 진입 10화면 (01-01~01-10)** — Splash, 온보딩 3종, Contextual 권한 3종, 권한 거부, 강제 업데이트, 서버 오류.
@@ -15,6 +15,9 @@
 6. **내 사진 7종 (13-01~13-07)** — 구매 내역/보관 중인 결과 목록, 상세, 원본 뷰어, 결과 재다운로드,
    삭제 확인·완료. 첫 결제 후 재방문의 축이 되는 완전히 새로운 영역이라 목적 선택 화면(S01)과
    함께 하단 탭 바를 처음 도입했다.
+7. **로그인 및 계정 7종 (14-01~14-07)** — 로그인·회원가입·소셜 로그인 계정 선택·로그인 실패·
+   로그아웃·회원 탈퇴·탈퇴 확인. 로그인은 앱 진입 조건이 아니라 결제·재다운로드처럼 계정이
+   필요한 순간에만 요구되고, 항상 원래 화면으로 되돌아간다.
 
 ## 실행
 
@@ -37,11 +40,14 @@ src/
                            FramingPreview, PhotoZoomModal, ReplacePhotoSheet,
                            PolicyDetailModal, GenerationPackagePicker,
                            GenerationConfirmSheet, RegenerateSheet, BottomTabBar,
-                           PhotoListItem, DeleteConfirmModal, OriginalPhotoModal)
+                           PhotoListItem, DeleteConfirmModal, OriginalPhotoModal,
+                           LogoutSheet, DeleteAccountConfirmModal)
   state/session.ts        Zustand 플로우 세션 스토어 (핸드오프 README의 Session 타입) —
                            + `framing`(aspect/rotation/얼굴 크기·위치/framingId), 사진 교체 시 리셋
                            + `generationCount`(1/4/8), `freeRetryUsed`, `resultIndex`
-  state/myPhotos.ts        Zustand 주문 내역 스토어 — 목차 13용 `PhotoOrder[]`, 삭제(전체/원본만)
+  state/myPhotos.ts        Zustand 주문 내역 스토어 — 목차 13용 `PhotoOrder[]`, 삭제(전체/원본만/전체 초기화)
+  state/auth.ts            Zustand 계정 스토어 — 목차 14용. `isLoggedIn`/`provider`/`maskedEmail`/
+                           `creditBalance`, 이메일 로그인 실패 카운터(`failedAttempts`/`lockedOut`)
   state/appEntry.ts        Zustand 앱 진입 스토어 — onboardingCompleted / notifPromptShown을
                            AsyncStorage에 영속. 권한 상태 자체는 매번 OS에서 재확인(permissions.ts)
   state/toast.ts           전역 토스트 큐 — 네비게이션 전환과 함께 노출되는 확인 토스트(02-03)라
@@ -70,7 +76,12 @@ src/
   screens/MyPhotos.tsx            13-01 — 목록 + 필터 칩 + 편집 모드 + 빈 상태 + 하단 탭 바
   screens/PhotoOrderDetail.tsx    13-03 — 주문 1건 상세
   screens/ResultsGrid.tsx         13-05 — 생성 결과 다중 선택 그리드
-  screens/Settings.tsx            설정 탭 자리표시자(이 배치엔 디자인 없음)
+  screens/Settings.tsx            설정 탭 — 14-05의 베이스 화면. 로그인 여부에 따라 로그인 유도
+                                   카드 / 계정 정보 행 + 로그아웃·회원 탈퇴 행을 전환
+  screens/Login.tsx               14-01 + 14-04 — 소셜 3종·이메일 로그인, 실패 상태는 같은 화면 내 state
+  screens/SignUp.tsx              14-02 — 이메일 회원가입
+  screens/AccountPicker.tsx       14-03 — 기기에 남은 소셜 계정 선택
+  screens/DeleteAccount.tsx       14-06 — 회원 탈퇴 (+ 14-07 확인 모달을 같은 화면에서 관리)
 ```
 
 같은 스택 안의 평범한 화면들일 뿐, 실제 `@react-navigation/bottom-tabs` 네비게이터는 없습니다 —
@@ -164,6 +175,35 @@ src/
 똑같이 하나의 플랫 스택 안에서 push/pop됩니다. 장점: 기존 60여 개 화면의 `RootStackParamList`
 타입을 전혀 바꾸지 않아도 되고, 중첩 네비게이터 간 타입 교차 문제가 아예 생기지 않습니다.
 
+## 로그인 및 계정 7종 (14-01~14-07)
+
+핸드오프 노트: "로그인은 앱 진입 조건이 아니다. 사용자는 로그인 없이 사진을 만들 수 있고,
+결제·재다운로드처럼 계정이 필요한 순간에만 로그인을 요청한다. 회원 탈퇴는 얼굴 데이터 삭제와
+직결되므로 무엇이 지워지고 무엇이 남는지 명시한다."
+
+| # | 화면 | 구현 |
+|---|---|---|
+| 14-01 | 로그인 | 신규 `Login` — 카카오/Apple/Google 소셜 3종 + 이메일 로그인, "나중에"·× 모두 스킵. 어디서 열렸든 성공 시 `goBack()`으로 되돌아가므로 라우트 파라미터가 필요 없다 |
+| 14-02 | 회원가입 | 신규 `SignUp` — 이메일/비밀번호/비밀번호 확인 + 실시간 3단계 강도 표시. 필수 약관 3종은 목업과 달리 **기본 미체크**로 구현했다(사전 체크된 동의 체크박스는 실제 서비스에서 지양해야 할 패턴이라 의도적으로 다르게 구현) |
+| 14-03 | 소셜 로그인 선택 | 신규 `AccountPicker` — 카카오 버튼을 누르면 항상 이 화면으로 이어진다(mock: "기기에 남은 계정 감지"를 결정적으로 재현하기 위함). "이 계정에 남아 있는 것"은 실제 `useMyPhotos`/크레딧 값에서 계산해 보여준다 |
+| 14-04 | 로그인 실패 | 별도 화면이 아니라 14-01 내부 상태 — 비밀번호 6자 미만이면 실패로 처리하는 mock 규칙(백엔드가 없어 매직 비밀번호 대신 발견 가능한 휴리스틱을 씀), 5회 실패 시 잠금 |
+| 14-05 | 로그아웃 | 신규 `LogoutSheet` — 설정 화면 위 시트. 계정을 지우는 게 아니므로 CTA는 경고색이 아닌 `#171719` 뉴트럴 |
+| 14-06 | 회원 탈퇴 | 신규 `DeleteAccount` — 삭제 대상/법정 보관 대상을 대칭 박스로 보여주고, 사진 저장 버튼과 "그냥 로그아웃할게요"를 탈퇴 CTA보다 강한 위계로 배치. 삭제 수량·크레딧은 실제 스토어 값에서 계산 |
+| 14-07 | 회원 탈퇴 확인 | 신규 `DeleteAccountConfirmModal` — "탈퇴합니다" 문구 입력 + 동의 체크 두 조건이 모두 충족될 때만 탈퇴 CTA 활성화. 확정 시 `useMyPhotos.clearAll()` + `useSession.reset()` + `useAuth.deleteAccount()`로 실제 앱 데이터를 지우고 홈으로 `popToTop()` |
+
+### 로그인 진입 지점 (adapted)
+
+핸드오프에 명시된 두 진입 지점만 실제로 연결했다 — 그 외는 로그인 없이도 완전히 동작해야 한다는
+원칙(RULE: 로그인은 결제 직전에만)을 지키기 위해 의도적으로 손대지 않았다.
+
+- **S12_Payment** — "결제하고 다운로드" CTA를 눌렀는데 로그인 상태가 아니면 `Login`을 push. 로그인은
+  항상 `goBack()`으로 S12에 되돌아가므로, 로그인 직후 자동으로 결제가 이어지지는 않고 CTA를 한 번 더
+  눌러야 한다 — "로그인 후 이어서 진행해요" 문구가 가리키는 "이어서"는 결제 자동 재시도가 아니라
+  세션이 그대로 보존된 같은 화면으로의 복귀를 뜻한다
+- **Settings** — 로그인 전엔 로그인 유도 카드, 로그인 후엔 계정 행 + 로그아웃/회원 탈퇴 행
+- 13-01(내 사진) 진입 시 로그인을 유도하라는 핸드오프 트리거는 구현하지 않았다 — 내 사진은 로그인
+  없이도 시드 데이터로 완전히 동작해야 하고, 결제 시점 게이팅만으로 RULE을 충분히 지킬 수 있다
+
 ## 지킨 제품 원칙
 
 - **RULE-01** 목적 우선 — S01에는 목적 선택 전 카메라/갤러리 CTA가 없음
@@ -207,4 +247,10 @@ src/
 - 목차 13의 주문 데이터(`INITIAL_MY_PHOTO_ORDERS`)는 실제 생성 흐름(S09→S10→S11→S12)이 끝나도
   자동으로 추가되지 않는 정적 시드 데이터입니다 — 완료된 주문을 `useMyPhotos`에 기록하는 연결은
   아직 없습니다
-- "설정" 탭은 이번 핸드오프 어디에도 디자인이 없어 자리표시자만 있습니다
+- `src/state/auth.ts`는 mock 스토어입니다 — 실제 OAuth SDK(카카오/Apple/Google) 연동, 실제 비밀번호
+  해시·서버 검증, 세션 토큰/리프레시는 아직 없습니다. 14-04 실패 상태는 "비밀번호 6자 미만이면
+  실패"라는 임시 휴리스틱으로 재현 가능하게 해뒀을 뿐, 실제 자격 증명 검증이 아닙니다
+- 비밀번호 재설정 메일 발송, 다국 SNS 계정 연결(계정 병합)은 14-04의 "다른 방법으로 들어가기"
+  UI만 있고 실제 동작은 없습니다
+- 앱을 재시작하면 로그인 상태가 초기화됩니다 — "로그인 상태 유지" 체크박스는 UI만 있고
+  AsyncStorage 영속은 아직 연결하지 않았습니다

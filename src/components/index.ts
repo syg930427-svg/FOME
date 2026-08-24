@@ -20,3 +20,5 @@ export type { TabKey } from './BottomTabBar';
 export { PhotoListItem } from './PhotoListItem';
 export { DeleteConfirmModal } from './DeleteConfirmModal';
 export { OriginalPhotoModal } from './OriginalPhotoModal';
+export { LogoutSheet } from './LogoutSheet';
+export { DeleteAccountConfirmModal } from './DeleteAccountConfirmModal';

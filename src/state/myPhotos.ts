@@ -8,6 +8,8 @@ type MyPhotosState = {
   /** 13-06 — delete an order. 'both' drops it from the list entirely; 'originalOnly' just clears its original-photo deletion notice (results/receipt stay). */
   deleteOrder: (id: string, scope: DeleteScope) => void;
   getOrder: (id: string) => PhotoOrder | undefined;
+  /** 14-07 — account deletion wipes every order, not just one. */
+  clearAll: () => void;
 };
 
 export const useMyPhotos = create<MyPhotosState>((set, get) => ({
@@ -22,4 +24,6 @@ export const useMyPhotos = create<MyPhotosState>((set, get) => ({
     })),
 
   getOrder: (id) => get().orders.find((o) => o.id === id),
+
+  clearAll: () => set({ orders: [] }),
 }));

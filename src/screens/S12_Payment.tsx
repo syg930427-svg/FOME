@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { confirmOrder, createOrder, PRODUCTS } from '../api';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, TextButton, SpecList } from '../components';
 import { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../state/auth';
 import { useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
 
@@ -18,10 +19,16 @@ export default function S12_Payment({ navigation }: Props) {
   const photo = useSession((s) => s.photo);
   const markPaid = useSession((s) => s.markPaid);
   const reset = useSession((s) => s.reset);
+  const isLoggedIn = useAuth((s) => s.isLoggedIn);
   const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
 
   async function handlePay() {
     if (paying) return;
+    // 목차 14: 로그인은 결제 직전에만 요구한다. Login always pops back here.
+    if (!isLoggedIn) {
+      navigation.navigate('Login');
+      return;
+    }
     setPaying(true);
     try {
       const order = await createOrder(product.id);

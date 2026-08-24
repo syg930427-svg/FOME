@@ -36,4 +36,12 @@ export type RootStackParamList = {
   PhotoOrderDetail: { orderId: string };
   ResultsGrid: { orderId: string };
   Settings: undefined;
+
+  // 목차 14 — 로그인 및 계정. Login/SignUp/AccountPicker are always pushed from
+  // whatever screen needs an account (결제 직전에만, per the handoff), and
+  // they always return there via goBack()/pop() — no `next` param needed.
+  Login: undefined;
+  SignUp: undefined;
+  AccountPicker: undefined;
+  DeleteAccount: undefined;
 };
