@@ -24,6 +24,7 @@ export type RootStackParamList = {
   PhotoConfirmFinal: undefined;
   S08_Options: undefined;
   S09_FinalConfirm: undefined;
+  GenerationStarted: { amount: number };
   S10_Generating: undefined;
   S11_Preview: undefined;
   S12_Payment: undefined;

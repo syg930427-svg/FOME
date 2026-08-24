@@ -90,6 +90,75 @@ export const GENERATION_STEPS = [
   '마지막으로 사진을 정리해요',
 ];
 
+/** 08-02 — richer progress screen's step-list labels (task-in-progress phrasing, not past-tense). */
+export const GENERATION_STEP_LABELS = ['얼굴 위치 정렬', '배경 정리', '피부·조명 보정', '규격 맞춰 자르기'];
+
+/** 08-04 — shown when a generation attempt fails (face not detected, the mock's only reachable reason). */
+export const GENERATION_FAILURE_TIPS = [
+  '얼굴이 화면의 절반 이상 차지하도록',
+  '밝은 곳에서 정면을 보고 촬영',
+  '모자·마스크 없이, 눈이 보이도록',
+];
+export const GENERATION_FAILURE_CODE = 'GEN_FACE_NOT_FOUND';
+
+/** 07-02 — policy detail modal. Spec rows + the fixed "AI가 하지 않는 것" list (same for every purpose). */
+export const POLICY_DETAILS: Record<PurposeId, { subtitle: string; rows: { label: string; value: string }[] }> = {
+  passport: {
+    subtitle: '외교부 여권 사진 규격(2023 개정)을 기준으로 제작해요.',
+    rows: [
+      { label: '사진 크기', value: '35 × 45 mm' },
+      { label: '머리 길이', value: '32 ~ 36 mm' },
+      { label: '눈높이', value: '아래에서 26 ~ 34 mm' },
+      { label: '배경', value: '흰색 · 무늬 없음' },
+      { label: '해상도', value: '300 dpi 이상' },
+    ],
+  },
+  residentId: {
+    subtitle: '행정안전부 주민등록증 사진 규격을 기준으로 제작해요.',
+    rows: [
+      { label: '사진 크기', value: '35 × 45 mm' },
+      { label: '머리 길이', value: '32 ~ 36 mm' },
+      { label: '배경', value: '흰색 · 무늬 없음' },
+      { label: '해상도', value: '300 dpi 이상' },
+    ],
+  },
+  driverLicense: {
+    subtitle: '도로교통공단 운전면허증 사진 규격을 기준으로 제작해요.',
+    rows: [
+      { label: '사진 크기', value: '35 × 45 mm' },
+      { label: '머리 길이', value: '32 ~ 36 mm' },
+      { label: '배경', value: '흰색 · 무늬 없음' },
+      { label: '해상도', value: '300 dpi 이상' },
+    ],
+  },
+  job: {
+    subtitle: '일반적인 이력서·프로필용 사진 권장 기준으로 제작해요.',
+    rows: [
+      { label: '사진 크기', value: '35 × 45 mm' },
+      { label: '배경', value: '흰색 또는 밝은 회색' },
+      { label: '해상도', value: '300 dpi 이상' },
+    ],
+  },
+};
+
+export const POLICY_AI_DOES_NOT = ['얼굴 골격·이목구비 위치 변경', '안경 착용 여부 변경', '나이·성별로 보이는 특징 변경'];
+
+/** 07-03/07-04 — how many candidate photos a single generation attempt produces. */
+export const GENERATION_PACKAGES: {
+  count: 1 | 4 | 8;
+  price: number;
+  originalPrice?: number;
+  description: string;
+  recommended?: boolean;
+}[] = [
+  { count: 1, price: 2900, description: '가장 저렴하게' },
+  { count: 4, price: 5900, originalPrice: 11600, description: '배경·보정 조합을 비교', recommended: true },
+  { count: 8, price: 8900, description: '여러 목적에 함께 사용' },
+];
+
+/** Mock wallet balance applied against the generation package price at 07-03/07-04. */
+export const MOCK_CREDIT_BALANCE = 2000;
+
 /**
  * 05-05~13 — 상체 범위(framing) presets. `topPct`/`sidePct` are the crop
  * frame's inset from the preview container as a fraction (0-1), used to draw

@@ -1,6 +1,6 @@
-# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍
+# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성
 
-디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 네 화면 묶음을 React Native + Expo로 구현한 앱입니다.
+디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 다섯 화면 묶음을 React Native + Expo로 구현한 앱입니다.
 
 1. **MVP 핵심 플로우 12화면 (S01–S12)** — 목적 선택부터 결제까지. 디자인 기준(Golden Reference).
 2. **앱 진입 10화면 (01-01~01-10)** — Splash, 온보딩 3종, Contextual 권한 3종, 권한 거부, 강제 업데이트, 서버 오류.
@@ -9,6 +9,9 @@
 4. **사진 입력·확인·프레이밍 13종 (04-01, 04-04~07, 05-02~05-15)** — 촬영/업로드 분기 화면과
    그 권한 거부·오류 상태, 사진 확대·교체 모달·시트, Crop → 얼굴 위치 → 상체 범위 → 최종 확정
    플로우. SCREEN-05/06/07은 EXISTING이라 재사용, 04-02·04-03·05-01이 그 자리다.
+5. **최종 설정·AI 생성 10종 (07-02~07-05, 08-02~08-07)** — 결제 전 확인 계층(정책 상세·수량/비용·
+   최종 확인·생성 시작)과 생성 중 성공/실패/취소 상태. SCREEN-09/10은 EXISTING이라 재사용, 07-01·
+   08-01이 그 자리다.
 
 ## 실행
 
@@ -28,9 +31,12 @@ src/
   components/             공통 컴포넌트 (PrimaryButton, SecondaryButton, TextButton,
                            SelectionCard, Chip, InfoBanner, SpecList, StepProgress,
                            ScreenHeader, PhotoPlaceholder, PermissionSheet, EntryIcons,
-                           FramingPreview, PhotoZoomModal, ReplacePhotoSheet)
+                           FramingPreview, PhotoZoomModal, ReplacePhotoSheet,
+                           PolicyDetailModal, GenerationPackagePicker,
+                           GenerationConfirmSheet, RegenerateSheet)
   state/session.ts        Zustand 플로우 세션 스토어 (핸드오프 README의 Session 타입) —
                            + `framing`(aspect/rotation/얼굴 크기·위치/framingId), 사진 교체 시 리셋
+                           + `generationCount`(1/4/8), `freeRetryUsed`, `resultIndex`
   state/appEntry.ts        Zustand 앱 진입 스토어 — onboardingCompleted / notifPromptShown을
                            AsyncStorage에 영속. 권한 상태 자체는 매번 OS에서 재확인(permissions.ts)
   state/toast.ts           전역 토스트 큐 — 네비게이션 전환과 함께 노출되는 확인 토스트(02-03)라
@@ -44,7 +50,7 @@ src/
                            Splash → (Onboarding | S01_Purpose) → S02 → S03 → S04
                            → PhotoInputMethod → (S05 | S06) → S07
                            → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
-                           → S08 → S09 → S10 → S11 → S12
+                           → S08 → S09 → GenerationStarted → S10 → S11 → S12
   screens/entry/           Splash, Onboarding(3페이지 페이저), PermissionDenied(3종 재사용),
                            UpdateRequired, ServerError
   screens/PhotoInputMethod.tsx    04-01 — 촬영/업로드 선택 + 두 경로 공용 권한 게이트
@@ -54,7 +60,8 @@ src/
   screens/FacePosition.tsx        05-04 — 크기/위·아래 슬라이더 + 정렬 가이드
   screens/FramingSelect.tsx       05-05~13 — 상체 범위 리스트 + 상단 미리보기
   screens/PhotoConfirmFinal.tsx   05-15 — 요약 확정 → 목차 06(옵션)
-  screens/S01_Purpose.tsx … S12_Payment.tsx
+  screens/GenerationStarted.tsx   07-05 — 결제 완료 → 생성 큐잉 전환 화면
+  screens/S01_Purpose.tsx … S12_Payment.tsx (S09/S10에 07·08 STATE/MODAL 통합)
 ```
 
 ## 앱 진입 화면 — 중복 정리 방침
@@ -101,11 +108,31 @@ src/
 | 05-14 | 사진 교체 확인 | 신규 `ReplacePhotoSheet` — 파괴적 동작이라 확인 시트를 거침. 목적/옵션은 유지, `framing`만 리셋(`setPhoto`가 자동으로 처리) |
 | 05-15 | 사진 사용 확정 | 신규 `PhotoConfirmFinal` — 요약 테이블(변경/교체 링크) + 저장 토스트, 이후 S08(옵션)로 진입 |
 
+## 최종 설정·AI 생성 10종
+
+핸드오프 노트: "SCREEN-09 최종 설정 확인과 SCREEN-10 AI 생성 중은 EXISTING이므로 다시 만들지 않는다.
+신규 대상은 결제 전 확인 계층(07-02~07-05)과 생성 중 성공·실패·중단 상태(08-02~08-07)다. 실패
+화면은 항상 다음 행동을 제시한다."
+
+| # | 화면 | 구현 |
+|---|---|---|
+| 07-02 | 적용 정책 상세 (모달) | 신규 `PolicyDetailModal` — 목적별 규격 표, "AI가 하지 않는 것" 고정 문구, 접수 보장 안 함 경고. S09의 정책 카드 "자세히 보기"에서 오픈 |
+| 07-03 | 생성 횟수·비용 (컴포넌트) | 신규 `GenerationPackagePicker` — S09 하단에 임베드. 1/4/8장 프리셋(`GENERATION_PACKAGES`), 보유 크레딧(`MOCK_CREDIT_BALANCE`) 차감한 결제 금액을 실시간 계산 |
+| 07-04 | 생성 전 최종 확인 (모달) | 신규 `GenerationConfirmSheet` — 결제가 일어나는 유일한 지점. 동의 체크(기본 선택) + 약관 링크. 확인 시 `payForGeneration` → `createGeneration(count)` 순서로 호출 |
+| 07-05 | 생성 시작 (전환) | 신규 `GenerationStarted` — 결제 완료 토스트 + 12% 진행 표시. "진행 상황 보기"(S10) / "홈으로 돌아가기"(생성은 스토어에 남아 계속 진행) |
+| 08-02 | 생성 진행 상태 | S10 재구성 — ETA 카운트다운, 썸네일 위 "N/4 완료" 배지, 4단계 상세 스텝 리스트(`GENERATION_STEP_LABELS`), "백그라운드로 계속하기" + 15초 후 활성화되는 "만들기 취소"(`cancelGeneration`) |
+| 08-03 | AI 생성 완료 | S10 내부 상태 전환(같은 화면, 별도 라우트 아님) — 선택한 장수만큼 결과 그리드, 탭으로 선택, "결과 자세히 보기" → `resultIndex` 저장 후 S11 |
+| 08-04 | AI 생성 실패 | S10 내부 상태 — 실패 사유별 팁(`GENERATION_FAILURE_TIPS`), 오류 코드 + 문의하기, 크레딧 미차감 문구. mock은 실패를 반환하지 않아 실제 백엔드 연동 후 도달 |
+| 08-05 | 생성 재시도 (시트) | 신규 `RegenerateSheet` — 같은 사진 무료 재시도(`freeRetryUsed`로 1회 제한) / 다른 사진 / 옵션 변경. 08-04에서 오픈 |
+| 08-06 | 네트워크 오류 | S10 내부 상태 — 상단 배너 + 재연결 UI. `getGeneration` throw를 이 상태로 매핑했지만 mock은 던지지 않아 dormant |
+| 08-07 | 생성 시간 초과 | S10 내부 상태 — 경과 180초 시 실제로 전환되는 타이머 로직(로컬 `elapsed` state). mock은 8초 내 완료되어 데모에서는 도달하지 않음 |
+
 ## 지킨 제품 원칙
 
 - **RULE-01** 목적 우선 — S01에는 목적 선택 전 카메라/갤러리 CTA가 없음
 - **RULE-05** 자동 PASS/FAIL 판정 없음 — S05는 코칭 문구만 표시
-- **RULE-07** 생성은 S09에서 1회만 — `submitting` 플래그로 중복 호출 방지
+- **RULE-07** 생성 요청은 S09→07-04 확인 시트를 거쳐야만 발행 — `submitting` 플래그로 중복 호출 방지.
+  1회 생성의 의미가 "사진 1장"에서 "선택한 장수(1/4/8)의 배치 1회"로 확장됨(07-03)
 - **RULE-08 / RULE-09** Identity Lock / 원본 헤어 유지 — `options.identityLock`,
   `options.preserveHair`는 세션 스토어의 상수이며 UI 토글로 노출되지 않음
 - **Contextual Permission** — 앱 시작 시 권한을 일괄 요청하지 않음. 카메라(S04 촬영 시작 직전),
@@ -115,6 +142,8 @@ src/
 - 알림 권한 거부/스킵은 생성 흐름을 막지 않음 (거부해도 계속 진행)
 - 여권/신분증/면허증은 Crop 비율과 상체 범위가 규격에 잠김 — 자유 비율·Waist-Up 이상 선택 불가
 - 사진 확인 어디서든 자동 PASS/FAIL 없음 (05-02도 "확인하면 좋은 것" 안내일 뿐)
+- 결제는 두 지점에서 따로 일어남 — **07-04**는 생성 배치(워터마크 포함 후보군 1/4/8장) 자체의 값,
+  **S12**는 고른 사진 1장의 고화질 다운로드 값. 서로 다른 상품이라 금액도 mock 데이터도 분리했습니다
 
 ## 남은 작업 (서버 연동 전 필요)
 
@@ -129,3 +158,8 @@ src/
 - `PhotoCrop`의 팬은 단일 손가락 드래그만 지원 — 핀치 확대/축소는 없습니다
 - Custom Framing(05-13)은 목록에 뜨지만 드래그로 직접 조정하는 인터랙션은 아직 없고, 고정 미리보기만
   보여줍니다
+- 08-04(실패)/08-06(네트워크 오류)/08-07(시간 초과)는 실제 상태 전환 로직까지 구현했지만 mock
+  API가 항상 빠르게 성공하기 때문에 지금 앱에서는 자연스럽게 도달하지 않습니다 — 실제 백엔드가
+  실패·타임아웃을 반환하거나 오프라인이 되면 그대로 작동합니다
+- S11/S12는 이번 배치(07-05)에 포함되지 않아 `resultIndex`를 아직 반영하지 않습니다 — 항상 세션의
+  원본 사진을 보여주며, 그리드에서 고른 특정 결과 이미지를 표시하지는 않습니다

@@ -9,6 +9,7 @@ import UpdateRequired from '../screens/entry/UpdateRequired';
 import CameraPermissionDenied from '../screens/CameraPermissionDenied';
 import FacePosition from '../screens/FacePosition';
 import FramingSelect from '../screens/FramingSelect';
+import GenerationStarted from '../screens/GenerationStarted';
 import PhotoConfirmFinal from '../screens/PhotoConfirmFinal';
 import PhotoCrop from '../screens/PhotoCrop';
 import PhotoInputMethod from '../screens/PhotoInputMethod';
@@ -32,7 +33,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 /**
  * S01 → S02 → S03 → S04 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
  *   → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
- *   → S08 → S09 → S10 → S11 → S12
+ *   → S08 → S09 → GenerationStarted → S10 → S11 → S12
  * Native stack push/pop transitions (default). Headers are drawn per-screen
  * to match the design's custom nav bar, so the stack header is hidden here.
  */
@@ -65,6 +66,7 @@ export function RootNavigator() {
         <Stack.Screen name="PhotoConfirmFinal" component={PhotoConfirmFinal} />
         <Stack.Screen name="S08_Options" component={S08_Options} />
         <Stack.Screen name="S09_FinalConfirm" component={S09_FinalConfirm} />
+        <Stack.Screen name="GenerationStarted" component={GenerationStarted} options={{ gestureEnabled: false }} />
         <Stack.Screen name="S10_Generating" component={S10_Generating} options={{ gestureEnabled: false }} />
         <Stack.Screen name="S11_Preview" component={S11_Preview} />
         <Stack.Screen name="S12_Payment" component={S12_Payment} />

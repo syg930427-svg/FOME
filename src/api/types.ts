@@ -35,6 +35,10 @@ export type Generation = {
   status: GenerationStatus;
   progress: number; // 0-100
   previewUrl: string | null;
+  /** Populated once status is 'done' — one preview per photo in the requested batch. */
+  results: string[] | null;
 };
 
 export type Order = { orderId: string; productId: string; amount: number };
+
+export type GenerationOrder = { orderId: string; count: number; amount: number };

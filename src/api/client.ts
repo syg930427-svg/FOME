@@ -1,5 +1,5 @@
-import { GENERATION_STEPS, POLICIES, PRODUCTS } from './mockData';
-import { Generation, GenerationOptions, Order, PhotoUploadResult, Policy, PurposeId } from './types';
+import { GENERATION_PACKAGES, GENERATION_STEPS, MOCK_CREDIT_BALANCE, POLICIES, PRODUCTS } from './mockData';
+import { Generation, GenerationOptions, GenerationOrder, Order, PhotoUploadResult, Policy, PurposeId } from './types';
 
 /**
  * Mock implementation of the server API described in the design handoff
@@ -36,27 +36,42 @@ export async function uploadPhoto(_uri: string): Promise<PhotoUploadResult> {
   return { photoId: `photo_${Date.now()}` };
 }
 
+/**
+ * 07-03/07-04 — pay for a generation attempt (1/4/8 candidate photos), the
+ * mock wallet balance applied first. This is a separate purchase from the
+ * post-preview high-res download at S12 — you're paying here for the
+ * attempt itself, not yet for a specific finished file.
+ */
+export async function payForGeneration(count: 1 | 4 | 8): Promise<GenerationOrder> {
+  await delay(400);
+  const pkg = GENERATION_PACKAGES.find((p) => p.count === count) ?? GENERATION_PACKAGES[1];
+  const amount = Math.max(0, pkg.price - MOCK_CREDIT_BALANCE);
+  return { orderId: `gen_order_${Date.now()}`, count, amount };
+}
+
 /** 3. POST /v1/generations — identityLock/preserveHair are server-forced constants, never sent. */
 export async function createGeneration(
   photoId: string,
   policyId: string,
-  options: GenerationOptions
+  options: GenerationOptions,
+  count: 1 | 4 | 8 = 1
 ): Promise<{ generationId: string; etaSeconds: number }> {
   await delay(300);
   void photoId;
   void policyId;
   void options;
-  return { generationId: `gen_${Date.now()}`, etaSeconds: 20 };
+  return { generationId: `gen_${Date.now()}`, etaSeconds: count === 1 ? 20 : count === 4 ? 40 : 70 };
 }
 
 /**
  * 4. GET /v1/generations/{id} — real backend is 2s-polled or SSE; the mock
  * advances progress deterministically each call so a fixed-interval poller
- * (see S10) reaches `done` in ~4 polls. previewUrl carries a watermark until paid.
+ * (see S10) reaches `done` in ~4 polls. previewUrl/results carry a watermark
+ * until paid at S12.
  */
 const mockGenerationProgress = new Map<string, number>();
 
-export async function getGeneration(generationId: string): Promise<Generation> {
+export async function getGeneration(generationId: string, count: 1 | 4 | 8 = 1): Promise<Generation> {
   await delay(200);
   const prev = mockGenerationProgress.get(generationId) ?? 0;
   const next = Math.min(100, prev + 34);
@@ -67,7 +82,15 @@ export async function getGeneration(generationId: string): Promise<Generation> {
     status,
     progress: next,
     previewUrl: status === 'done' ? 'mock://generated-preview-watermarked' : null,
+    results: status === 'done' ? Array.from({ length: count }, (_, i) => `mock://result-${generationId}-${i}`) : null,
   };
+}
+
+/** Refunds the mock credit and clears local progress — used by 08-02's "만들기 취소". */
+export async function cancelGeneration(generationId: string): Promise<{ cancelled: true }> {
+  await delay(300);
+  mockGenerationProgress.delete(generationId);
+  return { cancelled: true };
 }
 
 export function generationStepLabel(index: number) {

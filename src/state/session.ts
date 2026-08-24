@@ -17,6 +17,8 @@ export type GenerationState = {
   status: GenerationStatus;
   progress: number;
   previewUrl?: string;
+  results?: string[];
+  etaSeconds?: number;
 } | null;
 
 export type AspectPreset = 'passport' | '3x4' | 'free';
@@ -57,6 +59,12 @@ type SessionState = {
   framing: Framing;
   options: Options;
   generation: GenerationState;
+  /** 07-03/07-04 — how many candidate photos the next generation attempt requests. */
+  generationCount: 1 | 4 | 8;
+  /** 08-05 — one free retry per generation attempt (RULE: 실패 시 크레딧 미차감 + 1회 무료 재시도). */
+  freeRetryUsed: boolean;
+  /** 08-03 — which of the batch results the user picked to carry into S11/S12. */
+  resultIndex: number;
   paid: boolean;
   orderId: string | null;
 
@@ -67,6 +75,9 @@ type SessionState = {
   resetFraming: () => void;
   setOption: <K extends keyof Pick<Options, 'hair' | 'background'>>(key: K, value: Options[K]) => void;
   setGeneration: (generation: GenerationState) => void;
+  setGenerationCount: (count: 1 | 4 | 8) => void;
+  markFreeRetryUsed: () => void;
+  setResultIndex: (index: number) => void;
   markPaid: (orderId: string) => void;
   reset: () => void;
 };
@@ -94,6 +105,9 @@ export const useSession = create<SessionState>((set) => ({
   framing: defaultFraming,
   options: defaultOptions,
   generation: null,
+  generationCount: 4,
+  freeRetryUsed: false,
+  resultIndex: 0,
   paid: false,
   orderId: null,
 
@@ -109,6 +123,9 @@ export const useSession = create<SessionState>((set) => ({
       framing: defaultFraming,
       options: defaultOptions,
       generation: null,
+      generationCount: 4,
+      freeRetryUsed: false,
+      resultIndex: 0,
       paid: false,
       orderId: null,
     }),
@@ -123,6 +140,9 @@ export const useSession = create<SessionState>((set) => ({
   setOption: (key, value) => set((state) => ({ options: { ...state.options, [key]: value } })),
 
   setGeneration: (generation) => set({ generation }),
+  setGenerationCount: (generationCount) => set({ generationCount }),
+  markFreeRetryUsed: () => set({ freeRetryUsed: true }),
+  setResultIndex: (resultIndex) => set({ resultIndex }),
 
   markPaid: (orderId) => set({ paid: true, orderId }),
 
@@ -137,6 +157,9 @@ export const useSession = create<SessionState>((set) => ({
       framing: defaultFraming,
       options: defaultOptions,
       generation: null,
+      generationCount: 4,
+      freeRetryUsed: false,
+      resultIndex: 0,
       paid: false,
       orderId: null,
     }),
