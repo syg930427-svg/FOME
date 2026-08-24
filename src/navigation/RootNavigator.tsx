@@ -16,6 +16,8 @@ import GenerationStarted from '../screens/GenerationStarted';
 import LanguageSettings from '../screens/LanguageSettings';
 import Login from '../screens/Login';
 import MyPhotos from '../screens/MyPhotos';
+import NoticeDetail from '../screens/NoticeDetail';
+import Notices from '../screens/Notices';
 import NotificationSettings from '../screens/NotificationSettings';
 import OpenSourceLicenses from '../screens/OpenSourceLicenses';
 import PhotoConfirmFinal from '../screens/PhotoConfirmFinal';
@@ -41,6 +43,8 @@ import Settings from '../screens/Settings';
 import SignUp from '../screens/SignUp';
 import StoragePolicy from '../screens/StoragePolicy';
 import TermsOfService from '../screens/TermsOfService';
+import UpdateAvailable from '../screens/UpdateAvailable';
+import UpdateComplete from '../screens/UpdateComplete';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -67,6 +71,14 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * StoragePolicy/PrivacyPolicy/TermsOfService/OpenSourceLicenses) all hang
  * off Settings (16-01) and pop back via `goBack()` — same no-params
  * convention. 로그아웃/회원 탈퇴 now live on AccountSettings, not Settings.
+ *
+ * 목차 19: UpdateRequired is the existing 01-09 route, just with richer
+ * (규격 변경) content now. UpdateAvailable/UpdateComplete/Notices hang off
+ * Settings' 앱 설정 section; UpdateAvailable's "지금 업데이트" *replaces*
+ * itself with UpdateComplete (mocking the app-store round trip away, same
+ * mock-shortcut idea as S12_Payment's instant "결제" success). NoticeDetail
+ * is the one 목차 19 route with a param (`noticeId`) since a notice has to
+ * be looked up by id.
  */
 export function RootNavigator() {
   return (
@@ -119,6 +131,11 @@ export function RootNavigator() {
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
         <Stack.Screen name="TermsOfService" component={TermsOfService} />
         <Stack.Screen name="OpenSourceLicenses" component={OpenSourceLicenses} />
+
+        <Stack.Screen name="UpdateAvailable" component={UpdateAvailable} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="UpdateComplete" component={UpdateComplete} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Notices" component={Notices} />
+        <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
       </Stack.Navigator>
     </NavigationContainer>
   );

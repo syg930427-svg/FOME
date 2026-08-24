@@ -54,4 +54,13 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
   OpenSourceLicenses: undefined;
+
+  // 목차 19 — 앱 업데이트 및 공지. UpdateAvailable/UpdateComplete/Notices are
+  // pushed from Settings; UpdateRequired is a Splash boot-check destination
+  // (unchanged route, richer content). NoticeDetail takes the one param in
+  // this whole batch since a notice needs to be looked up by id.
+  UpdateAvailable: undefined;
+  UpdateComplete: undefined;
+  Notices: undefined;
+  NoticeDetail: { noticeId: string };
 };

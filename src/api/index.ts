@@ -28,5 +28,11 @@ export {
   TERMS_SUMMARY,
   TERMS_SECTIONS,
   TERMS_DETAIL,
+  FORCED_UPDATE_INFO,
+  OPTIONAL_UPDATE_INFO,
+  POST_UPDATE_NEW_SPECS,
+  NOTICE_FILTERS,
+  INITIAL_NOTICES,
+  PASSPORT_SPEC_NOTICE_DETAIL,
 } from './mockData';
-export type { OrderStatus, PhotoOrder, OpenSourceLibrary } from './mockData';
+export type { OrderStatus, PhotoOrder, OpenSourceLibrary, NoticeCategory, Notice } from './mockData';

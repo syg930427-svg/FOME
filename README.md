@@ -1,6 +1,6 @@
-# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진 + 로그인/계정 + 설정/개인정보
+# AI 증명사진 — 앱 진입 + MVP 핵심 플로우 + 목적 선택/안내 상태 + 사진 입력/프레이밍 + 최종 설정/생성 + 내 사진 + 로그인/계정 + 설정/개인정보 + 앱 업데이트/공지
 
-디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 여덟 화면 묶음을 React Native + Expo로 구현한 앱입니다.
+디자인 핸드오프 번들(`design_handoff_id_photo_app/`)의 아홉 화면 묶음을 React Native + Expo로 구현한 앱입니다.
 
 1. **MVP 핵심 플로우 12화면 (S01–S12)** — 목적 선택부터 결제까지. 디자인 기준(Golden Reference).
 2. **앱 진입 10화면 (01-01~01-10)** — Splash, 온보딩 3종, Contextual 권한 3종, 권한 거부, 강제 업데이트, 서버 오류.
@@ -22,6 +22,9 @@
    처리방침·이용약관·오픈소스 라이선스. 목차 16 전체 신규. 얼굴 사진을 다루는 서비스이므로
    개인정보는 법적 고지가 아니라 제품의 일부로 다룬다 — 보관 기간·삭제 방법을 약관 안에 숨기지
    않고 사진 보관 정책(16-05)이라는 별도 화면에서 평서문으로 먼저 설명한다.
+9. **앱 업데이트 및 공지 5종 (19-01~19-05)** — 업데이트 필요(강제)·업데이트 안내(선택)·업데이트
+   완료·공지사항·공지사항 상세. 증명사진 앱의 업데이트는 대부분 규격 변경 때문이라 "버그 수정"
+   대신 어떤 규격이 바뀌었는지 명시하고, 규격이 바뀐 업데이트만 강제하고 나머지는 건너뛸 수 있다.
 
 ## 실행
 
@@ -46,6 +49,8 @@ src/
                            GenerationConfirmSheet, RegenerateSheet, BottomTabBar,
                            PhotoListItem, DeleteConfirmModal, OriginalPhotoModal,
                            LogoutSheet, DeleteAccountConfirmModal, ToggleSwitch)
+  state/notices.ts        Zustand 공지사항 스토어 — 목차 19용. `Notice[]` + 읽음/모두 읽음
+                           (`useMyPhotos`와 같은 세션 메모리 패턴, AsyncStorage 영속 없음)
   state/session.ts        Zustand 플로우 세션 스토어 (핸드오프 README의 Session 타입) —
                            + `framing`(aspect/rotation/얼굴 크기·위치/framingId), 사진 교체 시 리셋
                            + `generationCount`(1/4/8), `freeRetryUsed`, `resultIndex`
@@ -71,7 +76,7 @@ src/
                            → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
                            → S08 → S09 → GenerationStarted → S10 → S11 → S12
   screens/entry/           Splash, Onboarding(3페이지 페이저), PermissionDenied(3종 재사용),
-                           UpdateRequired, ServerError
+                           UpdateRequired(19-01 — 구 01-09, 규격 변경 내용으로 재구성), ServerError
   screens/PhotoInputMethod.tsx    04-01 — 촬영/업로드 선택 + 두 경로 공용 권한 게이트
   screens/CameraPermissionDenied.tsx  04-04
   screens/PhotoPermissionDenied.tsx   04-05
@@ -98,6 +103,10 @@ src/
   screens/PrivacyPolicy.tsx       16-06 — 개인정보 처리방침 (요약 카드 + 목차 + 3조만 실제 본문)
   screens/TermsOfService.tsx      16-07 — 이용약관 (16-06과 같은 레이아웃 패턴)
   screens/OpenSourceLicenses.tsx  16-08 — 오픈소스 라이선스, 실검색 필터 + 탭하면 펼쳐지는 라이선스 전문
+  screens/UpdateAvailable.tsx     19-02 — 새 버전 안내 (선택 업데이트, 건너뛰기 가능)
+  screens/UpdateComplete.tsx      19-03 — 업데이트 완료, 새로 추가된 규격 안내 + 무료 재작업 경로
+  screens/Notices.tsx             19-04 — 공지사항 목록, 카테고리 필터 + 읽음/안읽음
+  screens/NoticeDetail.tsx        19-05 — 공지사항 상세 (이 배치의 유일한 route param, `noticeId`)
 ```
 
 같은 스택 안의 평범한 화면들일 뿐, 실제 `@react-navigation/bottom-tabs` 네비게이터는 없습니다 —
@@ -111,6 +120,7 @@ src/
 | 화면 | 처리 |
 |---|---|
 | 01-01 Splash, 01-02~04 온보딩, 01-08 권한 거부, 01-09 업데이트, 01-10 서버 오류 | 신규 구현 (7화면) |
+| 01-09 업데이트 | 이후 배치(목차 19)에서 19-01 디자인으로 내용을 교체 — 제네릭한 "업데이트가 필요해요"에서 "어떤 규격이 왜 바뀌었는지"를 명시하는 화면으로. 라우트 이름(`UpdateRequired`)과 Splash 부팅 로직은 그대로 |
 | 01-03 온보딩의 목적 카드 | `SelectionCard`를 `interactive={false}`로 재사용 (LEVEL 배지·체크 없음) |
 | 01-05 카메라 권한 | `S04_ShootingGuide`의 "촬영 시작" 탭 시 `PermissionSheet`를 그 화면 위에 오버레이 — 배경을 다시 그리지 않고 실제 S04 컴포넌트를 그대로 사용 |
 | 01-06 사진 접근 권한 | `S06_Upload`의 "갤러리에서 선택" 탭 시 동일 패턴 |
@@ -245,6 +255,20 @@ src/
 필요한 "내 정보" 섹션(계정 설정·결제 내역·내 사진)만 로그인 시에만 노출했다 — `state/settings.ts`를
 `state/auth.ts`와 분리한 이유이기도 하다.
 
+## 앱 업데이트 및 공지 5종 (19-01~19-05)
+
+핸드오프 노트: "증명사진 앱의 업데이트는 대부분 규격 변경 때문이다. 그래서 '버그 수정 및 성능
+개선'이라 쓰지 않고 어떤 규격이 바뀌었는지 명시한다. 규격이 바뀐 업데이트만 강제(19-01)이고
+나머지는 건너뛸 수 있게 한다."
+
+| # | 화면 | 구현 |
+|---|---|---|
+| 19-01 | 업데이트 필요 | `UpdateRequired` 재구성(01-09) — 반려 위험을 첫 문장에 쓰고, "바뀐 규격" 박스 + 버전/용량 비교표 + "만들어 둔 사진은 유지" 안내. 건너뛰기 버튼 대신 왜 없는지를 캡션으로 설명. Splash 부팅 체크가 `update_required`를 반환하면 도달(현재 mock은 항상 성공) |
+| 19-02 | 업데이트 안내 | 신규 `UpdateAvailable` — 선택 업데이트라 건너뛸 수 있음. 개선/추가/속도/버그 4블록 고정 레이아웃, 숫자가 있는 항목(24초→11초)은 반드시 숫자로. Settings의 "앱 설정 → 업데이트" 행에서 진입 |
+| 19-03 | 업데이트 완료 | 신규 `UpdateComplete` — 자축으로 끝나지 않도록 이번에 추가된 규격 3종 + "9월 1일 전에 만든 사진은 예전 규격" 안내와 무료 재작업 언급을 함께 배치. 19-02의 "지금 업데이트"에서 이어짐(실제 앱스토어 왕복은 mock으로 생략 — S12 결제와 같은 방식의 단축) |
+| 19-04 | 공지사항 | 신규 `Notices` — 카테고리 필터(전체/규격 변경/점검/이벤트), 안읽음만 빨간 점 + 안읽은 중요 공지는 파란 강조 카드, 읽은 공지는 72% 투명도로 뒤로 물러남. "모두 읽음"으로 일괄 처리. Settings의 "공지사항" 행(안읽음 수 배지)에서 진입 |
+| 19-05 | 공지사항 상세 | 신규 `NoticeDetail` — 본문보다 "나에게 해당되나"/"그래서 뭘 하나"가 우선이라 영향 범위 카드를 본문 앞에, 실행 CTA를 하단 고정으로 둔다. 이 배치에 실제 상세 본문이 있는 공지는 여권 규격 변경 1건뿐이라, CTA("내 사진 새 규격으로 다시 만들기")도 그 공지에서만 뜬다 — 여권 목적을 다시 선택하고 `S04_ShootingGuide`로 이어감(13-04의 재작업 패턴과 동일) |
+
 ## 지킨 제품 원칙
 
 - **RULE-01** 목적 우선 — S01에는 목적 선택 전 카메라/갤러리 CTA가 없음
@@ -306,3 +330,14 @@ src/
   6개만 수록한 예시 데이터입니다
 - 16-04 "사진 규격 기준 국가"와 16-02 "프로필 사진 변경"/"이름" 편집은 탭해도 안내만 뜨는
   자리표시자입니다 — 실제 국가 선택기·이미지 피커·이름 입력 폼은 아직 없습니다
+- 19-01(강제 업데이트)은 `prefetchBootstrap`이 항상 성공하는 mock이라 정상 부팅 흐름에서는
+  도달하지 않습니다 — 08-04/08-06/08-07과 같은 종류의 한계로, 실제 백엔드가 `update_required`를
+  반환하면 그대로 작동합니다(로컬에서 `client.ts`의 반환값을 잠깐 바꿔 직접 확인했습니다)
+- 19-02 "지금 업데이트"는 실제 앱스토어 업데이트·재실행 없이 19-03으로 즉시 전환됩니다 — 앱
+  자체를 인앱에서 갱신할 수 없어 택한 mock 지름길입니다(S12 결제가 PG 왕복 없이 즉시 성공 처리되는
+  것과 같은 종류의 단순화)
+- 19-02 "전체 변경 내역 보기", 19-03의 추가 규격 행은 탭해도 안내만 뜨는 자리표시자입니다
+- 19-04/19-05의 공지 데이터(`INITIAL_NOTICES`)는 정적 시드입니다 — 실제 상세 본문이 있는 공지는
+  여권 규격 변경 1건뿐이고, 나머지는 목록의 요약 문장을 상세 화면 본문으로 재사용합니다
+- `state/notices.ts`도 세션 메모리에만 있어 앱을 재시작하면 모든 공지가 다시 "안읽음"으로
+  돌아갑니다 — AsyncStorage 영속은 아직 없습니다

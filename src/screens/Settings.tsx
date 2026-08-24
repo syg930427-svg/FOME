@@ -7,6 +7,7 @@ import { BottomTabBar, PrimaryButton, TabKey } from '../components';
 import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/auth';
 import { useMyPhotos } from '../state/myPhotos';
+import { useNotices } from '../state/notices';
 import { useSettings } from '../state/settings';
 import { colors, spacing } from '../theme/tokens';
 
@@ -24,12 +25,14 @@ export default function Settings({ navigation }: Props) {
   const displayName = useAuth((s) => s.displayName);
   const maskedEmail = useAuth((s) => s.maskedEmail);
   const orders = useMyPhotos((s) => s.orders);
+  const notices = useNotices((s) => s.notices);
   const notifications = useSettings((s) => s.notifications);
   const language = useSettings((s) => s.language);
   const retentionPolicy = useSettings((s) => s.retentionPolicy);
 
   const photoCount = useMemo(() => orders.reduce((sum, o) => sum + o.resultCount, 0), [orders]);
   const orderCount = orders.length;
+  const unreadNoticeCount = useMemo(() => notices.filter((n) => !n.read).length, [notices]);
   const notifOn = notifications.photoComplete || notifications.paymentRefund || notifications.deletionWarning;
   const languageLabel = LANGUAGE_OPTIONS.find((l) => l.code === language)?.label ?? '한국어';
   const retentionLabel = RETENTION_OPTIONS.find((r) => r.id === retentionPolicy)?.shortLabel ?? '30일 후 자동 삭제';
@@ -99,9 +102,23 @@ export default function Settings({ navigation }: Props) {
               <Text style={styles.rowBadge}>{notifOn ? '켜짐' : '꺼짐'}</Text>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
-            <Pressable style={styles.row} onPress={() => navigation.navigate('LanguageSettings')}>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('LanguageSettings')}>
               <Text style={styles.rowText}>언어</Text>
               <Text style={styles.rowBadge}>{languageLabel}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={[styles.row, styles.rowDivider]} onPress={() => navigation.navigate('UpdateAvailable')}>
+              <Text style={styles.rowText}>업데이트</Text>
+              <Text style={styles.rowBadgeAccent}>새 버전 있음</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+            <Pressable style={styles.row} onPress={() => navigation.navigate('Notices')}>
+              <Text style={styles.rowText}>공지사항</Text>
+              {unreadNoticeCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>{unreadNoticeCount}</Text>
+                </View>
+              )}
               <Text style={styles.chevron}>›</Text>
             </Pressable>
           </View>
@@ -169,6 +186,9 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, fontSize: 14.5, fontWeight: '600', color: colors.textPrimary },
   rowBadge: { fontSize: 13, color: colors.textTertiary, marginRight: 2 },
   rowBadgeInline: { fontSize: 12, color: colors.primary },
+  rowBadgeAccent: { fontSize: 13, fontWeight: '700', color: colors.primary, marginRight: 2 },
+  unreadBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', marginRight: 2 },
+  unreadBadgeText: { fontSize: 11, fontWeight: '700', color: colors.inverseText },
   chevron: { fontSize: 18, color: colors.textDisabledAlt },
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
   footerText: { fontSize: 12.5, color: colors.textDisabled },

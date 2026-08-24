@@ -387,3 +387,121 @@ export const TERMS_DETAIL = {
   body: '이용자는 본인의 얼굴이 촬영된 사진만을 업로드해야 하며, 타인의 사진이나 초상권을 침해하는 이미지를 업로드해서는 안 됩니다. 신분증 사진의 위조·변조 목적으로 서비스를 이용하는 경우 이용이 제한될 수 있습니다.',
   warning: '제출 기관의 규격 심사 결과는 기관 재량이며, 반려에 대한 환불은 제공하지 않아요.',
 };
+
+// 목차 19 — 앱 업데이트 및 공지. 규격 변경으로 인한 업데이트만 강제(19-01)이고
+// 나머지 업데이트는 건너뛸 수 있다(19-02) — 세 화면(19-01~03)은 서로 이어지는
+// 하나의 내러티브라 버전 번호도 디자인 그대로(1.3.0 → 1.4.2) 맞춰뒀다.
+
+export const FORCED_UPDATE_INFO = {
+  currentVersion: '1.3.0',
+  newVersion: '1.4.2',
+  sizeLabel: '48MB',
+  reason: '여권 사진 규격이 바뀌어서, 지금 버전으로 만들면 기관에서 반려될 수 있어요.',
+  changedSpecs: ['여권 — 머리 높이 기준 32–36mm로 변경 (2026.09.01 시행)', '미국 비자 — 배경 밝기 기준 강화'],
+};
+
+export const OPTIONAL_UPDATE_INFO = {
+  newVersion: '1.4.2',
+  releaseDateLabel: '2026년 8월 20일',
+  sizeLabel: '48MB',
+  headline: '사진 품질이 좋아졌어요',
+  highlights: [
+    { icon: '✦', title: '머리카락 경계가 자연스러워졌어요', subtitle: '배경을 지울 때 머리카락이 잘려 보이던 문제를 고쳤어요' },
+    { icon: '＋', title: '규격 3종이 추가됐어요', subtitle: '일본 비자, 태국 워크퍼밋, 국제운전면허증' },
+    { icon: '⚡', title: '만드는 시간이 절반으로', subtitle: '평균 24초 → 11초' },
+  ],
+  fixedIssuesLabel: '인쇄용 파일 저장 실패, 결제 후 화면 멈춤',
+};
+
+export const POST_UPDATE_NEW_SPECS: { title: string; sizeLabel: string }[] = [
+  { title: '일본 비자', sizeLabel: '45×45mm' },
+  { title: '태국 워크퍼밋', sizeLabel: '40×50mm' },
+  { title: '국제운전면허증', sizeLabel: '45×35mm' },
+];
+
+export type NoticeCategory = 'spec' | 'maintenance' | 'event' | 'privacy';
+
+export type Notice = {
+  id: string;
+  category: NoticeCategory;
+  categoryLabel: string;
+  important: boolean;
+  dateLabel: string;
+  title: string;
+  summary: string;
+  read: boolean;
+};
+
+export const NOTICE_FILTERS: { id: NoticeCategory | 'all'; label: string }[] = [
+  { id: 'all', label: '전체' },
+  { id: 'spec', label: '규격 변경' },
+  { id: 'maintenance', label: '점검' },
+  { id: 'event', label: '이벤트' },
+];
+
+export const INITIAL_NOTICES: Notice[] = [
+  {
+    id: 'notice_passport_spec',
+    category: 'spec',
+    categoryLabel: '중요 · 규격 변경',
+    important: true,
+    dateLabel: '8월 20일',
+    title: '여권 사진 규격 변경 안내 (9월 1일 시행)',
+    summary: '머리 높이 기준이 32–36mm로 변경됩니다. 8월 31일까지 만든 사진은…',
+    read: false,
+  },
+  {
+    id: 'notice_maintenance_0824',
+    category: 'maintenance',
+    categoryLabel: '점검',
+    important: false,
+    dateLabel: '8월 22일',
+    title: '8월 24일 새벽 서버 점검 안내',
+    summary: '02:00–05:00 동안 새 사진 만들기가 중단됩니다.',
+    read: false,
+  },
+  {
+    id: 'notice_event_free',
+    category: 'event',
+    categoryLabel: '이벤트',
+    important: false,
+    dateLabel: '8월 12일',
+    title: '첫 사진 무료 이벤트 (~8월 31일)',
+    summary: '처음 만드는 사진 1장을 무료로 받아보세요.',
+    read: true,
+  },
+  {
+    id: 'notice_visa_bg',
+    category: 'spec',
+    categoryLabel: '규격 변경',
+    important: false,
+    dateLabel: '7월 28일',
+    title: '미국 비자 사진 배경 기준 강화',
+    summary: '배경 밝기 허용 범위가 좁아졌습니다.',
+    read: true,
+  },
+  {
+    id: 'notice_privacy_0601',
+    category: 'privacy',
+    categoryLabel: '개인정보',
+    important: false,
+    dateLabel: '6월 1일',
+    title: '개인정보 처리방침 개정 안내',
+    summary: '사진 보관 기간을 사용자가 직접 고를 수 있게 됐어요.',
+    read: true,
+  },
+];
+
+/** 19-05 — 이 배치에서 실제 상세 본문이 있는 유일한 공지. 나머지는 목록의 summary로 대체한다. */
+export const PASSPORT_SPEC_NOTICE_DETAIL = {
+  noticeId: 'notice_passport_spec',
+  audience: ['9월 1일 이후 여권을 접수할 분', '8월 31일까지 만든 여권 사진을 아직 제출하지 않은 분'],
+  body: '외교부 여권 사진 기준이 2026년 9월 1일부터 바뀝니다. 머리 높이(정수리–턱) 허용 범위가 32–36mm로 조정되고, 기존 기준(29–34mm)으로 만든 사진은 접수 창구에서 반려될 수 있습니다.',
+  comparisonRows: [
+    { label: '머리 높이', before: '29–34mm', after: '32–36mm' },
+    { label: '사진 크기', before: '35×45mm', after: '동일' },
+  ],
+  reworkNote: '앱을 1.4.2로 업데이트한 뒤 \'내 사진\'에서 다시 만들기를 누르면 새 규격으로 무료 재작업해 드려요. 12월 31일까지 신청할 수 있어요.',
+  externalLinkLabel: '외교부 원문 공고 보기',
+  externalUrl: 'https://www.mofa.go.kr/',
+};
