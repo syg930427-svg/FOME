@@ -1,4 +1,4 @@
-export type PurposeId = 'passport' | 'residentId' | 'driverLicense' | 'job';
+export type PurposeId = 'idPhoto' | 'passport' | 'residentId' | 'driverLicense' | 'job';
 
 export type Policy = {
   policyId: string;

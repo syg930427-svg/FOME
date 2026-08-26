@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomTabBar, DeleteConfirmModal, PhotoListItem, PrimaryButton, TabKey } from '../components';
 import { RootStackParamList } from '../navigation/types';
+import { quickStartPurpose } from '../quickStart';
 import { DeleteScope, useMyPhotos } from '../state/myPhotos';
 import { useToast } from '../state/toast';
 import { colors, spacing } from '../theme/tokens';
@@ -32,6 +33,12 @@ export default function MyPhotos({ navigation }: Props) {
   function handleSelectTab(tab: TabKey) {
     if (tab === 'home') navigation.navigate('S01_Purpose');
     else if (tab === 'settings') navigation.navigate('Settings');
+    else if (tab === 'shoot') void handleQuickCamera();
+  }
+
+  async function handleQuickCamera() {
+    await quickStartPurpose();
+    navigation.navigate('PhotoInputMethod', { preselect: 'camera' });
   }
 
   function handleRowPress(orderId: string) {

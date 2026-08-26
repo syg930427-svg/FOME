@@ -10,10 +10,11 @@ export const PURPOSES: {
   /** Server-decided (02-02 "준비 중" state) — all true today, capability wired for later. */
   available: boolean;
 }[] = [
+  { id: 'idPhoto', title: '증명사진', description: '정면 · 다양한 기관에서 통용되는 기본 규격', levelLabel: 'LEVEL 1 · 제한적 AI 편집', available: true },
   { id: 'passport', title: '여권 사진', description: '정면 · 가장 엄격한 촬영 조건', levelLabel: 'LEVEL 0 · 헤어 정돈만 허용', available: true },
   { id: 'residentId', title: '주민등록증 사진', description: '신분증용 정면 사진', levelLabel: 'LEVEL 1 · 제한적 AI 편집', available: true },
   { id: 'driverLicense', title: '운전면허증 사진', description: '면허증용 정면 사진', levelLabel: 'LEVEL 2 · 제한적 AI 편집', available: true },
-  { id: 'job', title: '취업·면접 사진', description: '전문적인 면접 사진', levelLabel: 'LEVEL 3 · AI 스타일 추천', available: true },
+  { id: 'job', title: '이력서', description: '자유 규격 · 정장 보정', levelLabel: 'LEVEL 3 · AI 스타일 추천', available: true },
 ];
 
 const CHECKLIST = [
@@ -40,6 +41,16 @@ export const GUIDES: { id: string; title: string; description: string; warning?:
 
 /** LEVEL 0 (passport) locks everything down hard; higher levels progressively relax hair options. */
 export const POLICIES: Record<PurposeId, Policy> = {
+  idPhoto: {
+    policyId: 'policy_idPhoto_v1',
+    purposeId: 'idPhoto',
+    editLevel: 1,
+    spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'white' },
+    guides: GUIDES,
+    sampleImageUrl: null,
+    guideImageUrls: [],
+    lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+  },
   passport: {
     policyId: 'policy_passport_v1',
     purposeId: 'passport',
@@ -104,6 +115,14 @@ export const GENERATION_FAILURE_CODE = 'GEN_FACE_NOT_FOUND';
 
 /** 07-02 — policy detail modal. Spec rows + the fixed "AI가 하지 않는 것" list (same for every purpose). */
 export const POLICY_DETAILS: Record<PurposeId, { subtitle: string; rows: { label: string; value: string }[] }> = {
+  idPhoto: {
+    subtitle: '여러 기관에서 통용되는 기본 증명사진 규격을 기준으로 제작해요.',
+    rows: [
+      { label: '사진 크기', value: '35 × 45 mm' },
+      { label: '배경', value: '흰색 · 무늬 없음' },
+      { label: '해상도', value: '300 dpi 이상' },
+    ],
+  },
   passport: {
     subtitle: '외교부 여권 사진 규격(2023 개정)을 기준으로 제작해요.',
     rows: [
@@ -187,7 +206,7 @@ export const FRAMING_OPTIONS: {
 ];
 
 /** Purposes whose policy locks the recommended framing (RULE: 규격 이탈 방지). */
-export const FRAMING_LOCKED_PURPOSES = new Set(['passport', 'residentId', 'driverLicense']);
+export const FRAMING_LOCKED_PURPOSES = new Set(['idPhoto', 'passport', 'residentId', 'driverLicense']);
 
 export const PRODUCTS = [
   {

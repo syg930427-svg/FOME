@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/tokens';
 
-export type TabKey = 'home' | 'myPhotos' | 'settings';
+export type TabKey = 'home' | 'shoot' | 'myPhotos' | 'settings';
 
 type Props = {
   active: TabKey;
@@ -11,8 +11,9 @@ type Props = {
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'home', label: '홈' },
+  { key: 'shoot', label: '촬영' },
   { key: 'myPhotos', label: '내 사진' },
-  { key: 'settings', label: '설정' },
+  { key: 'settings', label: 'MY' },
 ];
 
 /**
@@ -20,6 +21,11 @@ const TABS: { key: TabKey; label: string }[] = [
  * (S01_Purpose, MyPhotos, Settings). Every other screen is reached by
  * pushing on top within one of those tabs, so the bar isn't part of the
  * shared navigator chrome; each root screen renders it as its last child.
+ *
+ * "촬영" (02-01) has no root screen of its own — selecting it runs
+ * `quickStartPurpose()` and pushes straight into PhotoInputMethod, so it
+ * never becomes the `active` tab (always momentary). "MY" is 02-01's label
+ * for the same 설정(16-01) destination as before — key stays `settings`.
  */
 export function BottomTabBar({ active, onSelect }: Props) {
   return (

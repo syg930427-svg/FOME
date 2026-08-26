@@ -1,99 +1,166 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPolicy, PURPOSES } from '../api';
 import { PurposeId } from '../api/types';
-import { BottomTabBar, PrimaryButton, SelectionCard, TabKey } from '../components';
+import { BottomTabBar, TabKey } from '../components';
+import { BellGlyph, CameraGlyph } from '../components/EntryIcons';
+import { BriefcaseGlyph, IdPhotoGlyph, LicenseGlyph, PassportGlyph } from '../components/PurposeIcons';
 import { RootStackParamList } from '../navigation/types';
+import { quickStartPurpose } from '../quickStart';
+import { useMyPhotos } from '../state/myPhotos';
+import { useNotices } from '../state/notices';
 import { useSession } from '../state/session';
-import { useToast } from '../state/toast';
 import { colors, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'S01_Purpose'>;
 
 const POLICY_LOAD_TIMEOUT_MS = 3000;
 
+const HOME_CARDS: {
+  id: PurposeId;
+  specLabel: string;
+  specColor: string;
+  featured?: boolean;
+  Icon: (props: { color?: string }) => React.ReactElement;
+}[] = [
+  { id: 'idPhoto', specLabel: '35×45mm · 흰 배경', specColor: '#5B85C4', featured: true, Icon: IdPhotoGlyph },
+  { id: 'passport', specLabel: '35×45mm · 머리 32–36mm', specColor: colors.textTertiary, Icon: PassportGlyph },
+  { id: 'driverLicense', specLabel: '30×40mm · 상반신', specColor: colors.textTertiary, Icon: LicenseGlyph },
+  { id: 'job', specLabel: '자유 규격 · 정장 보정', specColor: colors.textTertiary, Icon: BriefcaseGlyph },
+];
+
+const STATUS_BADGE: Record<string, string> = { purchased: '완성', unpaid: '미결제', expired: '만료' };
+
 /**
- * S01 — 목적 선택 (home).
- * RULE-01: purpose comes before photo — no camera/gallery CTA may appear here,
- * only the purpose list and a single "start with <purpose>" CTA.
+ * 02-01 홈 — 목적 선택 홈 (다른 디자인 프로젝트의 새 핸드오프로 기존 S01을
+ * 대체). "POME" 브랜드, 2×2 목적 카드 그리드(한 탭이면 바로 진행 — 이전의
+ * 선택→CTA 2단계 대신), "이미 가진 사진" 단축 경로, 최근 작업 미리보기,
+ * 4번째 탭 "촬영"이 새로 생겼다. RULE-01은 그대로 지켜진다 — 카드 그리드
+ * 자체가 목적을 먼저 정하게 만들고, 카메라/갤러리 단축 경로도 목적을
+ * 먼저(idPhoto로) 확정한 뒤에만 진행한다.
  */
 export default function S01_Purpose({ navigation }: Props) {
-  const sessionPurposeId = useSession((s) => s.purposeId);
   const selectPurpose = useSession((s) => s.selectPurpose);
-  const showToast = useToast((s) => s.show);
+  const orders = useMyPhotos((s) => s.orders);
+  const unreadNoticeCount = useNotices((s) => s.notices.filter((n) => !n.read).length);
 
-  // 02-02: picking a card is instant, local-only UI state — no network call
-  // happens until the CTA is actually pressed (02-03).
-  const [selectedId, setSelectedId] = useState<PurposeId | null>(sessionPurposeId);
-  const [submitting, setSubmitting] = useState(false);
+  const [submittingId, setSubmittingId] = useState<PurposeId | null>(null);
 
-  const selected = PURPOSES.find((p) => p.id === selectedId) ?? null;
+  const recentOrder = orders[0] ?? null;
 
   function handleSelectTab(tab: TabKey) {
-    if (tab === 'myPhotos') navigation.navigate('MyPhotos');
+    if (tab === 'shoot') void handleQuickCamera();
+    else if (tab === 'myPhotos') navigation.navigate('MyPhotos');
     else if (tab === 'settings') navigation.navigate('Settings');
   }
 
-  async function handleSubmit() {
-    if (!selected || submitting) return;
-    setSubmitting(true);
+  async function handleSelectPurpose(id: PurposeId) {
+    if (submittingId) return;
+    setSubmittingId(id);
     try {
       const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), POLICY_LOAD_TIMEOUT_MS));
-      const policy = await Promise.race([getPolicy(selected.id), timeout]);
+      const policy = await Promise.race([getPolicy(id), timeout]);
       if (!policy) {
         navigation.navigate('ServerError');
         return;
       }
-      selectPurpose(selected.id, policy.policyId, policy.editLevel);
-      showToast(`${selected.title} 기준을 적용했어요`);
+      selectPurpose(id, policy.policyId, policy.editLevel);
       navigation.navigate('S02_PurposeGuide');
     } catch {
       navigation.navigate('ServerError');
     } finally {
-      setSubmitting(false);
+      setSubmittingId(null);
     }
+  }
+
+  async function handleQuickCamera() {
+    await quickStartPurpose();
+    navigation.navigate('PhotoInputMethod', { preselect: 'camera' });
+  }
+
+  async function handleQuickGallery() {
+    await quickStartPurpose();
+    navigation.navigate('PhotoInputMethod', { preselect: 'gallery' });
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.brand}>AI PHOTO</Text>
-        <View style={styles.avatar} />
+        <Text style={styles.brand}>POME</Text>
+        <Pressable style={styles.bellWrap} onPress={() => navigation.navigate('Notices')} hitSlop={8}>
+          <BellGlyph />
+          {unreadNoticeCount > 0 && <View style={styles.bellDot} />}
+        </Pressable>
       </View>
 
-      <View style={styles.titleBlock}>
-        <Text style={styles.title}>어떤 사진이{'\n'}필요하세요?</Text>
-        <Text style={styles.subtitle}>목적을 먼저 고르면 그 목적에 맞는 샘플과 촬영 가이드를 안내해요.</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>어떤 사진이{'\n'}필요하세요?</Text>
+          <Text style={styles.subtitle}>목적만 고르면 규격·배경·보정까지 알아서 맞춰드려요.</Text>
+        </View>
 
-      <View style={styles.list}>
-        {PURPOSES.map((p) => (
-          <View key={p.id} style={submitting && p.id !== selectedId ? styles.dimmed : undefined}>
-            <SelectionCard
-              title={p.title}
-              description={p.description}
-              levelLabel={p.levelLabel}
-              available={p.available}
-              selected={p.id === selectedId}
-              onPress={submitting ? undefined : () => setSelectedId(p.id)}
-            />
+        <View style={styles.grid}>
+          {HOME_CARDS.map(({ id, specLabel, specColor, featured, Icon }) => {
+            const purpose = PURPOSES.find((p) => p.id === id);
+            const dimmed = submittingId !== null && submittingId !== id;
+            return (
+              <Pressable
+                key={id}
+                style={[styles.card, featured ? styles.cardFeatured : styles.cardDefault, dimmed && styles.cardDimmed]}
+                onPress={() => handleSelectPurpose(id)}
+                disabled={submittingId !== null}
+              >
+                <View style={[styles.cardIconWrap, { backgroundColor: featured ? colors.surface : colors.primaryTint }]}>
+                  <Icon color={colors.primary} />
+                </View>
+                <View style={styles.cardTextCol}>
+                  <Text style={styles.cardTitle}>{submittingId === id ? '불러오는 중…' : purpose?.title}</Text>
+                  <Text style={[styles.cardSpec, { color: specColor }]}>{specLabel}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Pressable style={styles.uploadRow} onPress={handleQuickGallery} disabled={submittingId !== null}>
+          <View style={styles.uploadIconWrap}>
+            <CameraGlyph color={colors.textSecondary} />
           </View>
-        ))}
-        <Text style={styles.footnote}>
-          목적 선택 전에는 카메라·갤러리 CTA를 노출하지 않아요. 선택 즉시 정책 ID를 세션에 기록해요.
-        </Text>
-      </View>
+          <View style={styles.uploadTextCol}>
+            <Text style={styles.uploadTitle}>사진을 이미 가지고 있어요</Text>
+            <Text style={styles.uploadSubtitle}>가진 사진을 규격에 맞게 다듬어 드려요</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
 
-      <View style={styles.ctaArea}>
-        <PrimaryButton
-          label={submitting ? `${selected?.title ?? ''} 기준을 불러오는 중` : selected ? `${selected.title}으로 시작하기` : '목적을 선택해 주세요'}
-          disabled={!selected}
-          loading={submitting}
-          onPress={handleSubmit}
-        />
-      </View>
+        {recentOrder && (
+          <View style={styles.recentCol}>
+            <View style={styles.recentHeaderRow}>
+              <Text style={styles.recentLabel}>최근 작업</Text>
+              <Text style={styles.recentAllLink} onPress={() => navigation.navigate('MyPhotos')}>
+                전체 보기
+              </Text>
+            </View>
+            <Pressable
+              style={styles.recentCard}
+              onPress={() => navigation.navigate('PhotoOrderDetail', { orderId: recentOrder.id })}
+            >
+              <View style={styles.recentThumb} />
+              <View style={styles.recentTextCol}>
+                <Text style={styles.recentTitle}>{recentOrder.title}</Text>
+                <Text style={styles.recentMeta}>
+                  {recentOrder.createdLabel} · {recentOrder.resultCount}장 저장됨
+                </Text>
+              </View>
+              <View style={styles.recentBadge}>
+                <Text style={styles.recentBadgeText}>{STATUS_BADGE[recentOrder.status]}</Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
 
       <BottomTabBar active="home" onSelect={handleSelectTab} />
     </SafeAreaView>
@@ -103,20 +170,42 @@ export default function S01_Purpose({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
   header: {
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPadding,
-    paddingTop: 16,
-    paddingBottom: 8,
   },
-  brand: { fontSize: 13, fontWeight: '700', letterSpacing: 1.3, color: colors.primary },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceSubtleAlt },
-  titleBlock: { paddingHorizontal: spacing.screenPadding, paddingTop: 8, paddingBottom: 20, gap: 6 },
-  title: { fontSize: 26, fontWeight: '700', lineHeight: 26 * 1.3, letterSpacing: -0.5, color: colors.textPrimary },
-  subtitle: { fontSize: 14, color: colors.textTertiary, lineHeight: 21 },
-  list: { flex: 1, paddingHorizontal: spacing.screenPadding, gap: 10 },
-  dimmed: { opacity: 0.45 },
-  footnote: { marginTop: 6, fontSize: 12, lineHeight: 18, color: colors.textDisabled },
-  ctaArea: { padding: spacing.ctaAreaPadding.top, paddingHorizontal: spacing.screenPadding, paddingBottom: 28 },
+  brand: { fontSize: 21, fontWeight: '800', letterSpacing: -0.6, color: colors.textPrimary },
+  bellWrap: { marginLeft: 'auto', width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
+  bellDot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.error, borderWidth: 1.5, borderColor: colors.surface },
+  scrollContent: { paddingHorizontal: spacing.screenPadding, paddingTop: 10, paddingBottom: 24, gap: 26 },
+  titleBlock: { gap: 9 },
+  title: { fontSize: 25, fontWeight: '700', letterSpacing: -0.5, lineHeight: 25 * 1.35, color: colors.textPrimary },
+  subtitle: { fontSize: 14, lineHeight: 14 * 1.6, color: colors.textTertiary },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 11 },
+  card: { width: '47%', flexGrow: 1, gap: 12, padding: 16, borderRadius: 18 },
+  cardDefault: { borderWidth: 1, borderColor: colors.border },
+  cardFeatured: { borderWidth: 1.5, borderColor: '#DDE9FB', backgroundColor: colors.primaryTint },
+  cardDimmed: { opacity: 0.45 },
+  cardIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  cardTextCol: { gap: 3 },
+  cardTitle: { fontSize: 15.5, fontWeight: '700', color: colors.textPrimary },
+  cardSpec: { fontSize: 11.5 },
+  uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.surfaceSubtle },
+  uploadIconWrap: { width: 38, height: 38, borderRadius: 11, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  uploadTextCol: { flex: 1, gap: 2 },
+  uploadTitle: { fontSize: 14.5, fontWeight: '700', color: colors.textPrimary },
+  uploadSubtitle: { fontSize: 12, color: colors.textTertiary },
+  chevron: { fontSize: 17, color: colors.textDisabledAlt },
+  recentCol: { gap: 11 },
+  recentHeaderRow: { flexDirection: 'row', alignItems: 'baseline' },
+  recentLabel: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  recentAllLink: { marginLeft: 'auto', fontSize: 12.5, fontWeight: '700', color: colors.textTertiary },
+  recentCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
+  recentThumb: { width: 42, height: 54, borderRadius: 6, backgroundColor: colors.surfaceSubtleAlt },
+  recentTextCol: { flex: 1, gap: 4 },
+  recentTitle: { fontSize: 14.5, fontWeight: '700', color: colors.textPrimary },
+  recentMeta: { fontSize: 12, color: colors.textTertiary },
+  recentBadge: { height: 26, paddingHorizontal: 10, borderRadius: 6, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  recentBadgeText: { fontSize: 11.5, fontWeight: '700', color: colors.primary },
 });

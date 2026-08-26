@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { APP_VERSION_LABEL, LANGUAGE_OPTIONS, RETENTION_OPTIONS, SUPPORT_EMAIL } from '../api';
 import { BottomTabBar, PrimaryButton, TabKey } from '../components';
 import { RootStackParamList } from '../navigation/types';
+import { quickStartPurpose } from '../quickStart';
 import { useAuth } from '../state/auth';
 import { useMyPhotos } from '../state/myPhotos';
 import { useNotices } from '../state/notices';
@@ -40,6 +41,12 @@ export default function Settings({ navigation }: Props) {
   function handleSelectTab(tab: TabKey) {
     if (tab === 'home') navigation.navigate('S01_Purpose');
     else if (tab === 'myPhotos') navigation.navigate('MyPhotos');
+    else if (tab === 'shoot') void handleQuickCamera();
+  }
+
+  async function handleQuickCamera() {
+    await quickStartPurpose();
+    navigation.navigate('PhotoInputMethod', { preselect: 'camera' });
   }
 
   function handleContact() {
