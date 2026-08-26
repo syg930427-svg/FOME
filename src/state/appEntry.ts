@@ -38,8 +38,12 @@ async function persist(state: Persisted) {
  * bookkeeping that the OS doesn't track for us — onboarding seen, whether
  * we've already shown the notification prompt once — is persisted here.
  */
+// TODO(temporary): 온보딩을 우선 앱 실행 시 보이지 않게 스킵 처리. 다시 보여주려면
+// 아래 두 곳(초기값 + hydrate의 fallback)을 false로 되돌리면 됨.
+const SKIP_ONBOARDING_FOR_NOW = true;
+
 export const useAppEntry = create<AppEntryState>((set, get) => ({
-  onboardingCompleted: false,
+  onboardingCompleted: SKIP_ONBOARDING_FOR_NOW,
   notifPromptShown: false,
   lastPurposeId: null,
   hydrated: false,
@@ -51,7 +55,7 @@ export const useAppEntry = create<AppEntryState>((set, get) => ({
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Persisted>;
         set({
-          onboardingCompleted: parsed.onboardingCompleted ?? false,
+          onboardingCompleted: parsed.onboardingCompleted ?? SKIP_ONBOARDING_FOR_NOW,
           notifPromptShown: parsed.notifPromptShown ?? false,
           lastPurposeId: parsed.lastPurposeId ?? null,
         });
