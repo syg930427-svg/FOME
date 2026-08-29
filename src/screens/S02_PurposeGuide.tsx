@@ -56,7 +56,7 @@ export default function S02_PurposeGuide({ navigation }: Props) {
 
       <View style={styles.ctaArea}>
         <TextButton label="자세히 보기" onPress={() => navigation.navigate('S03_IdealSample')} />
-        <PrimaryButton label="사진 준비하기" onPress={() => navigation.navigate('S03_IdealSample')} />
+        <PrimaryButton label="사진 준비하기" onPress={() => navigation.navigate('PhotoInputMethod', {})} />
       </View>
     </SafeAreaView>
   );
