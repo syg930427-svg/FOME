@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GUIDES } from '../api/mockData';
 import { PURPOSES } from '../api';
 import { InfoBanner, PhotoPlaceholder, PrimaryButton, ScreenHeader, TextButton } from '../components';
 import { ImageZoomModal } from '../components/ImageZoomModal';
@@ -35,8 +36,17 @@ const BAD_EXAMPLES = [
 
 const DETAIL_ZOOM = ['머리', '눈·눈썹', '입·표정', '어깨'];
 
+type Tab = 'good' | 'bad' | 'detail';
+
+/**
+ * 「사진 준비 기준」 자세히 보기 — S02(메인 화면)의 "자세히 보기"에서만 진입하는
+ * 순수 정보 화면. 사진 제작을 시작하는 화면이 아니라서 하단 CTA는 다음 단계로
+ * 보내지 않고 그대로 S02로 돌아간다(`goBack`). "촬영 기준" 탭은 구 S04_
+ * ShootingGuide의 6개 항목(GUIDES)을 흡수한 것 — 별도 화면 없이 여기 한 곳에서
+ * 좋은 예시·피해야 할 예시·세부 기준을 모두 확인할 수 있다.
+ */
 export default function S03_IdealSample({ navigation }: Props) {
-  const [tab, setTab] = useState<'good' | 'bad'>('good');
+  const [tab, setTab] = useState<Tab>('good');
   const [badIndex, setBadIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
   const purposeId = useSession((s) => s.purposeId);
@@ -46,7 +56,7 @@ export default function S03_IdealSample({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScreenHeader title="이상적인 샘플" onBack={navigation.goBack} />
+      <ScreenHeader title="사진 준비 기준" onBack={navigation.goBack} />
 
       <View style={styles.tabs}>
         <Pressable style={[styles.tab, tab === 'good' && styles.tabActive]} onPress={() => setTab('good')}>
@@ -54,6 +64,9 @@ export default function S03_IdealSample({ navigation }: Props) {
         </Pressable>
         <Pressable style={[styles.tab, tab === 'bad' && styles.tabActive]} onPress={() => setTab('bad')}>
           <Text style={[styles.tabText, tab === 'bad' && styles.tabTextActive]}>피해야 할 예시</Text>
+        </Pressable>
+        <Pressable style={[styles.tab, tab === 'detail' && styles.tabActive]} onPress={() => setTab('detail')}>
+          <Text style={[styles.tabText, tab === 'detail' && styles.tabTextActive]}>촬영 기준</Text>
         </Pressable>
       </View>
 
@@ -92,7 +105,7 @@ export default function S03_IdealSample({ navigation }: Props) {
             text="고개 기울임 · 얼굴을 가린 머리카락 · 강한 그림자 · 과도한 미소 · 지나치게 가까운 촬영"
           />
         </ScrollView>
-      ) : (
+      ) : tab === 'bad' ? (
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
           <View style={styles.sampleWrap}>
             <PhotoPlaceholder
@@ -131,11 +144,27 @@ export default function S03_IdealSample({ navigation }: Props) {
 
           <InfoBanner tone="info" text="이 기준은 참고용 안내예요. 앱이 사진을 자동으로 합격·불합격 판정하지 않아요." />
         </ScrollView>
+      ) : (
+        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+          {GUIDES.map((item) => (
+            <View key={item.id} style={styles.guideRow}>
+              <Text style={styles.guideTitle}>{item.title}</Text>
+              <View style={styles.bulletList}>
+                {item.description.split(' · ').map((line) => (
+                  <Text key={line} style={styles.bullet}>
+                    · {line}
+                  </Text>
+                ))}
+              </View>
+              {item.warning ? <InfoBanner tone="warning" text={item.warning} /> : null}
+            </View>
+          ))}
+        </ScrollView>
       )}
 
       <View style={styles.ctaArea}>
         {tab === 'bad' && <TextButton label="좋은 예시와 비교하기" onPress={() => setTab('good')} />}
-        <PrimaryButton label="촬영 가이드 보기" onPress={() => navigation.navigate('S04_ShootingGuide')} />
+        <PrimaryButton label="확인했어요" onPress={navigation.goBack} />
       </View>
 
       <ImageZoomModal
@@ -153,7 +182,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: spacing.screenPadding, paddingBottom: 14 },
   tab: { flex: 1, height: 40, borderRadius: 10, backgroundColor: colors.surfaceSubtleAlt, alignItems: 'center', justifyContent: 'center' },
   tabActive: { backgroundColor: colors.inverseBg },
-  tabText: { fontSize: 14, fontWeight: '600', color: colors.textTertiary },
+  tabText: { fontSize: 13, fontWeight: '600', color: colors.textTertiary },
   tabTextActive: { color: colors.inverseText, fontWeight: '700' },
   body: { flex: 1 },
   bodyContent: { paddingHorizontal: spacing.screenPadding, gap: 16, paddingBottom: 24 },
@@ -194,5 +223,9 @@ const styles = StyleSheet.create({
   detailGrid: { flexDirection: 'row', gap: 8 },
   detailCell: { flex: 1, gap: 5 },
   detailCellLabel: { fontSize: 11, textAlign: 'center', color: colors.textSecondaryAlt },
+  guideRow: { gap: 8, paddingBottom: 14, marginBottom: 2, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+  guideTitle: { fontSize: 15.5, fontWeight: '700', color: colors.textPrimary },
+  bulletList: { gap: 5 },
+  bullet: { fontSize: 13.5, lineHeight: 13.5 * 1.5, color: '#3B4A63' },
   ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 10 },
 });

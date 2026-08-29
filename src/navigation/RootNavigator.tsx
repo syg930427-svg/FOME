@@ -26,7 +26,6 @@ import ResultsGrid from '../screens/ResultsGrid';
 import S01_Purpose from '../screens/S01_Purpose';
 import S02_PurposeGuide from '../screens/S02_PurposeGuide';
 import S03_IdealSample from '../screens/S03_IdealSample';
-import S04_ShootingGuide from '../screens/S04_ShootingGuide';
 import S05_Camera from '../screens/S05_Camera';
 import S06_Upload from '../screens/S06_Upload';
 import S07_PhotoConfirm from '../screens/S07_PhotoConfirm';
@@ -46,8 +45,14 @@ import { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
- * S01 → S02 → S03 → S04 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
+ * S01 → S02 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
  *   → S08 → S09 → GenerationStarted → S10 → S11 → (S12 다운로드 | S08 재생성)
+ * S02("이 사진처럼 준비해 주세요")가 목적별 안내 + 핵심 체크사항을 한 화면에서
+ * 보여주는 메인 화면 — "자세히 보기"는 S03(상세 기준, 정보 전용·goBack만)으로,
+ * "사진 준비하기"는 PhotoInputMethod로 바로 이동한다. 두 버튼이 같은 화면으로
+ * 가지 않는 것이 이 구조의 핵심 조건. 구 S04_ShootingGuide(촬영 가이드)는
+ * 별도 화면 없이 S03의 "촬영 기준" 탭으로 흡수되어 더 이상 존재하지 않는다 —
+ * 촬영 화면(S05)에는 준비 기준을 재확인하는 CTA를 의도적으로 두지 않는다.
  * S07은 옛 PhotoCrop/FacePosition/FramingSelect/PhotoConfirmFinal 4단계를
  * 흡수한 통합 확인 화면 — 범위·위치 조정은 PhotoAdjustSheet(Bottom Sheet)로
  * 옮겨졌고, 여기서 바로 S08로 넘어간다. 재생성(S11 "재생성" 버튼)도 새 화면
@@ -95,7 +100,6 @@ export function RootNavigator() {
         <Stack.Screen name="S01_Purpose" component={S01_Purpose} />
         <Stack.Screen name="S02_PurposeGuide" component={S02_PurposeGuide} />
         <Stack.Screen name="S03_IdealSample" component={S03_IdealSample} />
-        <Stack.Screen name="S04_ShootingGuide" component={S04_ShootingGuide} />
         <Stack.Screen name="PhotoInputMethod" component={PhotoInputMethod} />
         <Stack.Screen name="CameraPermissionDenied" component={CameraPermissionDenied} />
         <Stack.Screen name="PhotoPermissionDenied" component={PhotoPermissionDenied} />

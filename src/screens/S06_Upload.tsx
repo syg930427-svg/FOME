@@ -115,7 +115,7 @@ export default function S06_Upload({ navigation }: Props) {
         secondaryLabel="앱에서 새로 촬영하기"
         onSecondary={() => {
           setSheetVisible(false);
-          navigation.navigate('S04_ShootingGuide');
+          navigation.navigate('PhotoInputMethod', { preselect: 'camera' });
         }}
         onDismiss={() => setSheetVisible(false)}
       />

@@ -25,7 +25,7 @@ const COPY = {
     body: '권한이 꺼져 있어 갤러리에서 사진을 가져올 수 없어요. 설정에서 사진 권한을 켜면 바로 이어서 선택할 수 있어요.',
     lastStep: '사진 항목 켜기',
     altLabel: '앱에서 새로 촬영하기',
-    altTarget: 'S04_ShootingGuide' as const,
+    altTarget: 'PhotoInputMethod' as const,
   },
   notifications: {
     header: '알림 권한',
@@ -86,7 +86,11 @@ export default function PermissionDenied({ navigation, route }: Props) {
         <PrimaryButton label="설정으로 이동" onPress={() => Linking.openSettings()} />
         <SecondaryButton
           label={copy.altLabel}
-          onPress={() => (copy.altTarget ? navigation.navigate(copy.altTarget) : navigation.goBack())}
+          onPress={() => {
+            if (copy.altTarget === 'PhotoInputMethod') navigation.navigate('PhotoInputMethod', { preselect: 'camera' });
+            else if (copy.altTarget) navigation.navigate(copy.altTarget);
+            else navigation.goBack();
+          }}
         />
       </View>
     </SafeAreaView>

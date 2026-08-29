@@ -10,8 +10,10 @@ export type RootStackParamList = {
 
   S01_Purpose: undefined;
   S02_PurposeGuide: undefined;
+  // 「자세히 보기」 상세 기준 화면 — 구 S04_ShootingGuide(촬영 가이드)의 6개
+  // 항목(GUIDES)을 "촬영 기준" 탭으로 흡수했다. S02에서만 진입하고, 확인 후
+  // goBack()으로 S02에 복귀할 뿐 다음 단계로 진행시키지 않는다.
   S03_IdealSample: undefined;
-  S04_ShootingGuide: undefined;
   PhotoInputMethod: { preselect?: InputMethod };
   CameraPermissionDenied: undefined;
   PhotoPermissionDenied: undefined;

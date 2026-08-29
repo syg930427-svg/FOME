@@ -100,17 +100,8 @@ export default function S05_Camera({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.dark} edges={['top', 'bottom']}>
-      <ScreenHeader
-        title="여권 촬영"
-        closeIcon
-        onBack={navigation.goBack}
-        dark
-        right={
-          <Pressable style={styles.guidePill} onPress={() => navigation.navigate('S04_ShootingGuide')}>
-            <Text style={styles.guidePillText}>가이드 다시 보기</Text>
-          </Pressable>
-        }
-      />
+      {/* 촬영 화면은 촬영에만 집중 — 준비 기준 재확인 CTA는 의도적으로 없음(S02/S03에서 이미 확인 완료). */}
+      <ScreenHeader title="여권 촬영" closeIcon onBack={navigation.goBack} dark />
 
       <View style={styles.previewWrap}>
         <CameraView
@@ -170,8 +161,6 @@ const styles = StyleSheet.create({
   permissionBody: { flex: 1, padding: spacing.screenPadding, gap: 12, justifyContent: 'center' },
   permissionTitle: { fontSize: 20, fontWeight: '700', color: colors.inverseText },
   permissionText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 8 },
-  guidePill: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)' },
-  guidePillText: { fontSize: 12, fontWeight: '600', color: colors.inverseText },
   previewWrap: { flex: 1, backgroundColor: colors.cameraDarkAlt, overflow: 'hidden' },
   faceGuide: {
     position: 'absolute',

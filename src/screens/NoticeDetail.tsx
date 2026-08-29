@@ -31,7 +31,7 @@ export default function NoticeDetail({ navigation, route }: Props) {
   async function handleRemakeForNewSpec() {
     const policy = await getPolicy('passport');
     selectPurpose('passport', policy.policyId, policy.editLevel);
-    navigation.navigate('S04_ShootingGuide');
+    navigation.navigate('PhotoInputMethod', {});
   }
 
   return (

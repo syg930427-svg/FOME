@@ -47,7 +47,7 @@ export default function PhotoOrderDetail({ navigation, route }: Props) {
     setOriginalVisible(false);
     const policy = await getPolicy(order!.purposeId);
     selectPurpose(order!.purposeId, policy.policyId, policy.editLevel);
-    navigation.navigate('S04_ShootingGuide');
+    navigation.navigate('PhotoInputMethod', {});
   }
 
   return (
