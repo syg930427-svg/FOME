@@ -17,11 +17,11 @@ export type RootStackParamList = {
   PhotoPermissionDenied: undefined;
   S05_Camera: undefined;
   S06_Upload: undefined;
+  // 05-02~05-15 통합본. 촬영(S05)·기존 사진(S06) 두 경로가 모두 이 화면으로
+  // 모이고, 여기서 바로 S08_Options로 넘어간다 — 옛 PhotoCrop/FacePosition/
+  // FramingSelect/PhotoConfirmFinal 4개 route는 PhotoAdjustSheet(Bottom
+  // Sheet)로 흡수되어 더 이상 존재하지 않는다.
   S07_PhotoConfirm: undefined;
-  PhotoCrop: undefined;
-  FacePosition: undefined;
-  FramingSelect: undefined;
-  PhotoConfirmFinal: undefined;
   S08_Options: undefined;
   S09_FinalConfirm: undefined;
   GenerationStarted: { amount: number };

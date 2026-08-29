@@ -78,17 +78,15 @@ src/
   navigation/              React Navigation native stack:
                            Splash → (Onboarding | S01_Purpose) → S02 → S03 → S04
                            → PhotoInputMethod → (S05 | S06) → S07
-                           → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
-                           → S08 → S09 → GenerationStarted → S10 → S11 → S12
+                           → S08 → S09 → GenerationStarted → S10 → S11 → (S12 | S08 재생성)
   screens/entry/           Splash, Onboarding(3페이지 페이저), PermissionDenied(3종 재사용),
                            UpdateRequired(19-01 — 구 01-09, 규격 변경 내용으로 재구성), ServerError
   screens/PhotoInputMethod.tsx    04-01 — 촬영/업로드 선택 + 두 경로 공용 권한 게이트
   screens/CameraPermissionDenied.tsx  04-04
   screens/PhotoPermissionDenied.tsx   04-05
-  screens/PhotoCrop.tsx           05-03 — 비율/회전/드래그
-  screens/FacePosition.tsx        05-04 — 크기/위·아래 슬라이더 + 정렬 가이드
-  screens/FramingSelect.tsx       05-05~13 — 상체 범위 리스트 + 상단 미리보기
-  screens/PhotoConfirmFinal.tsx   05-15 — 요약 확정 → 목차 06(옵션)
+  screens/S07_PhotoConfirm.tsx    05-02~05-15 통합 — 사진 확인 + 범위/위치 조정(PhotoAdjustSheet
+                                   Bottom Sheet) + 확정, 바로 S08로 진입. 아래 "촬영·확인 플로우
+                                   통합" 절 참고
   screens/GenerationStarted.tsx   07-05 — 결제 완료 → 생성 큐잉 전환 화면
   screens/S01_Purpose.tsx         02-01 — 새 POME 홈(별도 디자인 프로젝트). 2×2 목적 카드 그리드,
                                    "이미 가진 사진" 단축 경로, 최근 작업 미리보기, 4탭 바 루트
@@ -187,11 +185,24 @@ src/
 | 04-06 | 카메라 오류 | `S05_Camera`에 상태 추가 — `CameraView`의 `onMountError` 또는 촬영 실패를 잡아 다크 에러 화면으로 전환. 실제 목(mock) 카메라는 실패하지 않아 도달은 하드웨어 오류 시에만 |
 | 04-07 | 사진 불러오기 오류 | `S06_Upload`에 바텀시트 추가 — `uploadPhoto` 실패를 캐치해 노출. mock은 항상 성공하므로 실제 백엔드 연동 후 의미가 생김 |
 | 05-02 | 사진 확대 (모달) | 신규 `PhotoZoomModal` — 사용자의 실제 사진 + 목적 프레임 오버레이 토글. `S07_PhotoConfirm`에서 사진 탭하면 열림 |
-| 05-03 | 사진 Crop | 신규 `PhotoCrop` — 비율 프리셋(여권 규격은 잠김), 회전 슬라이더(직접 구현, ±15°), 단일 손가락 팬(PanResponder). 핀치 줌은 없음 |
-| 05-04 | 얼굴 위치 조정 | 신규 `FacePosition` — 크기/위·아래 슬라이더 + 머리 정점·눈높이·턱선 가이드라인, "자동으로 맞추기" |
-| 05-05~13 | 상체 범위 선택 | 신규 `FramingSelect` — `FRAMING_OPTIONS` 8종(mockData). 여권·신분증·면허증은 Face & Shoulders로 고정되고 Waist-Up 이상은 목록에서 숨음(`FRAMING_LOCKED_PURPOSES`) |
+| 05-03~13 | Crop/얼굴 위치/상체 범위 조정 | `PhotoAdjustSheet` Bottom Sheet(범위 탭 = 옛 FramingSelect의 `FRAMING_OPTIONS` 8종 목록, 세부 조정 탭 = 옛 PhotoCrop 회전 슬라이더(±15°) + FacePosition 크기/위·아래 슬라이더 + "자동으로 맞추기"). 여권·신분증·면허증은 Face & Shoulders로 고정(`FRAMING_LOCKED_PURPOSES`). **User Flow 개편(아래 절)으로 3개 독립 화면에서 1개 시트로 통합, PanResponder 자유 드래그는 제거하고 슬라이더로 대체** |
 | 05-14 | 사진 교체 확인 | 신규 `ReplacePhotoSheet` — 파괴적 동작이라 확인 시트를 거침. 목적/옵션은 유지, `framing`만 리셋(`setPhoto`가 자동으로 처리) |
-| 05-15 | 사진 사용 확정 | 신규 `PhotoConfirmFinal` — 요약 테이블(변경/교체 링크) + 저장 토스트, 이후 S08(옵션)로 진입 |
+| 05-15 | 사진 사용 확정 | `S07_PhotoConfirm`에 흡수 — 요약 테이블(변경/교체 링크) + 저장 토스트, CTA로 바로 S08(옵션) 진입. 구 `PhotoConfirmFinal`은 삭제됨 |
+
+## 촬영·확인 플로우 통합 (User Flow 개편)
+
+Claude Design에서 확정한 새 User Flow에 맞춰 `S07 → PhotoCrop → FacePosition → FramingSelect →
+PhotoConfirmFinal → S08`로 이어지던 5단계 체인을 `S07 → S08` 2단계로 압축했습니다.
+
+| 이전 | 이후 |
+|---|---|
+| S07(확인) → PhotoCrop(범위/회전, 풀스크린) → FacePosition(위치, 풀스크린) → FramingSelect(상체 범위, 풀스크린) → PhotoConfirmFinal(확정) → S08 | S07(확인+요약+조정 진입점) → **PhotoAdjustSheet**(Bottom Sheet, "범위"/"세부 조정" 2탭) → S08 |
+| route 5개 | route 1개(S07) + 컴포넌트 1개(PhotoAdjustSheet) |
+
+- S07은 이제 촬영(`source==='camera'`)과 기존 사진(`source==='gallery'`) 두 경로가 공유하며, 헤더 타이틀만 "촬영 완료"/"사진 선택 완료"로 갈립니다.
+- `PhotoCrop`의 자유 드래그(PanResponder pan)는 제거했습니다 — 실제 이미지 파이프라인이 없는 mock이라 값 자체는 항상 `session.framing`의 숫자(회전/크기/위치)로만 표현되므로, 자유 드래그 대신 슬라이더로 통일해도 표현 가능한 상태 공간은 동일합니다.
+- `session.framing`(`Framing` 타입) 자체는 변경하지 않았습니다 — 4개 화면이 나눠 쓰던 필드를 시트 하나가 그대로 씁니다.
+- 결과 화면(S11)의 "다운로드"/"재생성" 두 CTA는 이미 각각 S12_Payment / S08_Options로 분기하고 있어 이번 개편으로 변경하지 않았습니다 — 재생성은 새 화면 없이 기존 S08→S09→GenerationStarted→S10 루프를 그대로 재사용합니다.
 
 ## 최종 설정·AI 생성 10종
 
@@ -332,7 +343,8 @@ src/
   cubic-bezier) 등 세부 모션은 기본 네이티브 스택 트랜지션으로 단순화했습니다
 - `ImageZoomModal`/`PhotoZoomModal`은 탭-닫기/기준 토글/썸네일 전환만 구현했고, 핀치 줌과 스와이프
   다운 닫기는 아직 없습니다 (`react-native-gesture-handler` 도입 필요)
-- `PhotoCrop`의 팬은 단일 손가락 드래그만 지원 — 핀치 확대/축소는 없습니다
+- `PhotoAdjustSheet`의 조정은 슬라이더(회전/크기/위치) + 범위 목록뿐 — 자유 드래그·핀치 확대/축소는
+  없습니다 (구 `PhotoCrop`의 PanResponder 팬은 User Flow 개편으로 제거됨)
 - Custom Framing(05-13)은 목록에 뜨지만 드래그로 직접 조정하는 인터랙션은 아직 없고, 고정 미리보기만
   보여줍니다
 - 08-04(실패)/08-06(네트워크 오류)/08-07(시간 초과)는 실제 상태 전환 로직까지 구현했지만 mock

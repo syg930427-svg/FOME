@@ -10,8 +10,6 @@ import AccountPicker from '../screens/AccountPicker';
 import AccountSettings from '../screens/AccountSettings';
 import CameraPermissionDenied from '../screens/CameraPermissionDenied';
 import DeleteAccount from '../screens/DeleteAccount';
-import FacePosition from '../screens/FacePosition';
-import FramingSelect from '../screens/FramingSelect';
 import GenerationStarted from '../screens/GenerationStarted';
 import LanguageSettings from '../screens/LanguageSettings';
 import Login from '../screens/Login';
@@ -20,8 +18,6 @@ import NoticeDetail from '../screens/NoticeDetail';
 import Notices from '../screens/Notices';
 import NotificationSettings from '../screens/NotificationSettings';
 import OpenSourceLicenses from '../screens/OpenSourceLicenses';
-import PhotoConfirmFinal from '../screens/PhotoConfirmFinal';
-import PhotoCrop from '../screens/PhotoCrop';
 import PhotoInputMethod from '../screens/PhotoInputMethod';
 import PhotoOrderDetail from '../screens/PhotoOrderDetail';
 import PhotoPermissionDenied from '../screens/PhotoPermissionDenied';
@@ -51,8 +47,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
  * S01 → S02 → S03 → S04 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
- *   → PhotoCrop → FacePosition → FramingSelect → PhotoConfirmFinal
- *   → S08 → S09 → GenerationStarted → S10 → S11 → S12
+ *   → S08 → S09 → GenerationStarted → S10 → S11 → (S12 다운로드 | S08 재생성)
+ * S07은 옛 PhotoCrop/FacePosition/FramingSelect/PhotoConfirmFinal 4단계를
+ * 흡수한 통합 확인 화면 — 범위·위치 조정은 PhotoAdjustSheet(Bottom Sheet)로
+ * 옮겨졌고, 여기서 바로 S08로 넘어간다. 재생성(S11 "재생성" 버튼)도 새 화면
+ * 없이 S08→S09→GenerationStarted→S10 루프를 그대로 재사용한다.
  * Native stack push/pop transitions (default). Headers are drawn per-screen
  * to match the design's custom nav bar, so the stack header is hidden here.
  *
@@ -103,10 +102,6 @@ export function RootNavigator() {
         <Stack.Screen name="S05_Camera" component={S05_Camera} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="S06_Upload" component={S06_Upload} />
         <Stack.Screen name="S07_PhotoConfirm" component={S07_PhotoConfirm} />
-        <Stack.Screen name="PhotoCrop" component={PhotoCrop} options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="FacePosition" component={FacePosition} />
-        <Stack.Screen name="FramingSelect" component={FramingSelect} />
-        <Stack.Screen name="PhotoConfirmFinal" component={PhotoConfirmFinal} />
         <Stack.Screen name="S08_Options" component={S08_Options} />
         <Stack.Screen name="S09_FinalConfirm" component={S09_FinalConfirm} />
         <Stack.Screen name="GenerationStarted" component={GenerationStarted} options={{ gestureEnabled: false }} />
