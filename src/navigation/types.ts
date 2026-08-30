@@ -9,11 +9,12 @@ export type RootStackParamList = {
   ServerError: undefined;
 
   S01_Purpose: undefined;
+  // 「사진 준비 기준」 단일 화면 — 좋은 예시/핵심 체크리스트/목적별 규격·정책은
+  // 항상 노출, "피해야 할 사진 예시"/"촬영 기준"은 접힘(아코디언)으로 흡수했다
+  // (구 S03_IdealSample 3탭 + 구 S04_ShootingGuide 6항목). S01 다음 딱 한 번만
+  // 보여주는 게 원칙이라 별도 "자세히 보기" route는 없다 — S06/S07의 "다시
+  // 보기"는 이 화면을 `push`로 재방문한다.
   S02_PurposeGuide: undefined;
-  // 「자세히 보기」 상세 기준 화면 — 구 S04_ShootingGuide(촬영 가이드)의 6개
-  // 항목(GUIDES)을 "촬영 기준" 탭으로 흡수했다. S02에서만 진입하고, 확인 후
-  // goBack()으로 S02에 복귀할 뿐 다음 단계로 진행시키지 않는다.
-  S03_IdealSample: undefined;
   PhotoInputMethod: { preselect?: InputMethod };
   CameraPermissionDenied: undefined;
   PhotoPermissionDenied: undefined;

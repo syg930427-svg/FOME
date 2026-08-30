@@ -25,7 +25,6 @@ import PrivacyPolicy from '../screens/PrivacyPolicy';
 import ResultsGrid from '../screens/ResultsGrid';
 import S01_Purpose from '../screens/S01_Purpose';
 import S02_PurposeGuide from '../screens/S02_PurposeGuide';
-import S03_IdealSample from '../screens/S03_IdealSample';
 import S05_Camera from '../screens/S05_Camera';
 import S06_Upload from '../screens/S06_Upload';
 import S07_PhotoConfirm from '../screens/S07_PhotoConfirm';
@@ -47,12 +46,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 /**
  * S01 → S02 → PhotoInputMethod → (S05 촬영 | S06 업로드) → S07
  *   → S08 → S09 → GenerationStarted → S10 → S11 → (S12 다운로드 | S08 재생성)
- * S02("이 사진처럼 준비해 주세요")가 목적별 안내 + 핵심 체크사항을 한 화면에서
- * 보여주는 메인 화면 — "자세히 보기"는 S03(상세 기준, 정보 전용·goBack만)으로,
- * "사진 준비하기"는 PhotoInputMethod로 바로 이동한다. 두 버튼이 같은 화면으로
- * 가지 않는 것이 이 구조의 핵심 조건. 구 S04_ShootingGuide(촬영 가이드)는
- * 별도 화면 없이 S03의 "촬영 기준" 탭으로 흡수되어 더 이상 존재하지 않는다 —
- * 촬영 화면(S05)에는 준비 기준을 재확인하는 CTA를 의도적으로 두지 않는다.
+ * S02("이 사진처럼 준비해 주세요")가 이 앱의 유일한 "사진 준비 기준" 화면이다 —
+ * 좋은 예시·핵심 체크리스트·목적별 규격/정책은 항상 펼쳐져 있고, "피해야 할
+ * 사진 예시"/"촬영 기준"은 화면 안 아코디언(기본 접힘)으로 들어 있다. 구
+ * S03_IdealSample(3탭)과 구 S04_ShootingGuide(6항목 촬영 가이드)가 전부 이
+ * 화면 하나로 흡수됐고 둘 다 삭제됐다 — 별도의 "자세히 보기" route는 없다.
+ * S06("샘플 다시 보기")·S07("사진 준비 기준 다시 보기")은 이 화면을 `push`로
+ * 재방문한다 — `navigate`를 쓰면 스택에 이미 있는 S02로 점프하며 그 사이
+ * 화면(PhotoInputMethod/S06/S07)이 스택에서 사라지므로 반드시 push여야
+ * 뒤로가기 시 원래 화면으로 정상 복귀한다.
  * S07은 옛 PhotoCrop/FacePosition/FramingSelect/PhotoConfirmFinal 4단계를
  * 흡수한 통합 확인 화면 — 범위·위치 조정은 PhotoAdjustSheet(Bottom Sheet)로
  * 옮겨졌고, 여기서 바로 S08로 넘어간다. 재생성(S11 "재생성" 버튼)도 새 화면
@@ -99,7 +101,6 @@ export function RootNavigator() {
 
         <Stack.Screen name="S01_Purpose" component={S01_Purpose} />
         <Stack.Screen name="S02_PurposeGuide" component={S02_PurposeGuide} />
-        <Stack.Screen name="S03_IdealSample" component={S03_IdealSample} />
         <Stack.Screen name="PhotoInputMethod" component={PhotoInputMethod} />
         <Stack.Screen name="CameraPermissionDenied" component={CameraPermissionDenied} />
         <Stack.Screen name="PhotoPermissionDenied" component={PhotoPermissionDenied} />

@@ -92,7 +92,9 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
         </View>
 
         <Text style={styles.footnote}>자동 PASS/FAIL을 표시하지 않아요. 샘플과 비교해 직접 판단해 주세요.</Text>
-        <TextButton label="사진 준비 기준 다시 보기" onPress={() => navigation.navigate('S03_IdealSample')} />
+        {/* push 사용: navigate는 스택에 이미 있는 S02로 점프하며 그 사이 화면들을
+            스택에서 지워버려, 뒤로가기 시 이 확인 화면으로 못 돌아간다. */}
+        <TextButton label="사진 준비 기준 다시 보기" onPress={() => navigation.push('S02_PurposeGuide')} />
       </ScrollView>
 
       <View style={styles.ctaArea}>

@@ -25,19 +25,46 @@ const CHECKLIST = [
   '균일한 조명과 깔끔한 배경',
 ];
 
-export const GUIDES: { id: string; title: string; description: string; warning?: string }[] = [
+export type GuideItem = { id: string; title: string; description: string; warning?: string };
+
+/**
+ * 모든 목적에 공통으로 적용되는 촬영 기준. 특정 목적에만 해당하는 규칙(예: 여권
+ * 전용 문구)은 여기 넣지 않는다 — PURPOSE_GUIDES로 분리해 다른 목적에 섞여
+ * 노출되지 않게 한다.
+ */
+export const COMMON_GUIDES: GuideItem[] = [
   { id: 'face', title: '얼굴', description: '카메라를 정면으로 바라보고 고개를 기울이지 않아요' },
   { id: 'hair', title: '머리카락', description: '눈과 눈썹을 가리지 않게 정리 · 얼굴 양쪽 윤곽이 명확히 보이게 · 가르마·질감·길이감은 그대로 유지' },
   {
     id: 'eyes',
     title: '눈과 시선',
     description: '렌즈를 자연스럽게 바라보기 · 눈에 힘을 주거나 찡그리지 않기 · 안경 렌즈에 빛이 반사되지 않게 · 컬러 렌즈는 피하기',
-    warning: '여권 사진은 눈동자가 또렷하게 보여야 해요. 반사가 심하면 안경을 벗고 촬영하세요.',
   },
   { id: 'mouth', title: '입과 표정', description: '입을 편안하게 다물고 차분한 정면 표정' },
   { id: 'posture', title: '어깨와 상체', description: '몸을 틀지 않고 상체를 정면으로 맞춰요' },
   { id: 'lighting', title: '조명과 배경', description: '역광·강한 측면광을 피하고 배경은 단순하게' },
 ];
+
+/**
+ * 특정 purposeId에만 적용되는 추가 촬영 기준. 새 목적이 추가돼도 이 맵에
+ * 항목을 넣지 않는 한 COMMON_GUIDES만 적용되므로, 다른 목적의 규칙이 섞여
+ * 보일 일이 없다.
+ */
+export const PURPOSE_GUIDES: Partial<Record<PurposeId, GuideItem[]>> = {
+  passport: [
+    {
+      id: 'passport-eyes',
+      title: '여권 사진 추가 기준',
+      description: '눈동자가 또렷하게 보여야 해요.',
+      warning: '반사가 심하면 안경을 벗고 촬영하세요.',
+    },
+  ],
+};
+
+/** 화면에서 쓸 최종 촬영 기준 목록 — 공통 6개 + 해당 목적 전용 항목(있으면). */
+export function getGuidesForPurpose(purposeId: PurposeId): GuideItem[] {
+  return [...COMMON_GUIDES, ...(PURPOSE_GUIDES[purposeId] ?? [])];
+}
 
 /** LEVEL 0 (passport) locks everything down hard; higher levels progressively relax hair options. */
 export const POLICIES: Record<PurposeId, Policy> = {
@@ -46,7 +73,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     purposeId: 'idPhoto',
     editLevel: 1,
     spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'white' },
-    guides: GUIDES,
+    guides: getGuidesForPurpose('idPhoto'),
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
@@ -56,7 +83,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     purposeId: 'passport',
     editLevel: 0,
     spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'white' },
-    guides: GUIDES,
+    guides: getGuidesForPurpose('passport'),
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: ['flyaway'], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
@@ -66,7 +93,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     purposeId: 'residentId',
     editLevel: 1,
     spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'white' },
-    guides: GUIDES,
+    guides: getGuidesForPurpose('residentId'),
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
@@ -76,7 +103,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     purposeId: 'driverLicense',
     editLevel: 2,
     spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'white' },
-    guides: GUIDES,
+    guides: getGuidesForPurpose('driverLicense'),
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
@@ -86,7 +113,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     purposeId: 'job',
     editLevel: 3,
     spec: { widthMm: 35, heightMm: 45, headHeightMm: 32, background: 'lightGray' },
-    guides: GUIDES,
+    guides: getGuidesForPurpose('job'),
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },

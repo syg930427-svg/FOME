@@ -76,7 +76,7 @@ src/
                            화면은 항상 `src/api`에서만 import하므로 실제 클라이언트로
                            교체할 때 client.ts 한 파일만 바꾸면 됩니다.
   navigation/              React Navigation native stack:
-                           Splash → (Onboarding | S01_Purpose) → S02 (→ S03 정보 화면, goBack만)
+                           Splash → (Onboarding | S01_Purpose) → S02
                            → PhotoInputMethod → (S05 | S06) → S07
                            → S08 → S09 → GenerationStarted → S10 → S11 → (S12 | S08 재생성)
   screens/entry/           Splash, Onboarding(3페이지 페이저), PermissionDenied(3종 재사용),
@@ -170,7 +170,7 @@ src/
 | 02-02 | 목적 선택 상태 (default/pressed/selected/**준비 중**) | `SelectionCard`에 `available` prop 추가 — 정책이 아직 없는 목적은 50% 투명 + "준비 중" 배지로 비활성화(현재 4개 전부 available). Pressable의 pressed 콜백으로 눌림 스타일(`#DBDCDF`/`#F7F7F8`) 반영 |
 | 02-03 | 목적 선택 완료 → 정책 로드 → 03-01 전환 | 카드를 고르는 것만으로는 API를 부르지 않고, CTA를 눌러야 `getPolicy`를 호출하도록 S01 재구성. 로드 중엔 CTA가 스피너+"OO 기준을 불러오는 중"(`#0052CC`)으로 바뀌고 나머지 카드는 45% 투명. 3초 타임아웃 시 `ServerError`로 이동. 성공하면 전역 `state/toast.ts`로 "OO 기준을 적용했어요" 토스트를 띄우며 S02로 이동 |
 | 03-03 | 피해야 할 사진 탭 | S03에 "피해야 할 예시" 탭 전용 레이아웃 추가 — 회전된 샘플 이미지 + 이유 배지, 탭 가능한 4종 배드 이그잼플 썸네일(선택 시 배지 교체), 5줄 회피 사유 체크리스트, RULE-05 안내 배너 |
-| 03-04 | 샘플 이미지 확대 (모달) | 신규 `ImageZoomModal` — 전체화면 다크 모달, 머리 정점/눈높이/턱선 가이드라인 토글, 세부 컷 썸네일, 정렬 안내 박스. S03 good/bad 탭의 "탭하면 확대"에서 오픈 |
+| 03-04 | 샘플 이미지 확대 (모달) | 당시엔 `ImageZoomModal`(전체화면 다크 모달)로 구현 — S03 good/bad 탭의 "탭하면 확대"에서 오픈. **S02/S03 최종 병합("사진 준비 안내 플로우 개편 — 최종" 절)에서 S03이 삭제되며 유일한 사용처가 사라져 `ImageZoomModal.tsx`도 함께 삭제됨** |
 | 03-06 | 가이드 항목 확장 | 당시엔 S04 아코디언에 확인(confirm) 상태로 구현(항목별 "확인했어요" 체크, 진행바, 경고 배너). **이후 "사진 준비 안내 플로우 개편"(아래 절)에서 S04가 삭제되면서 이 6개 항목 자체는 S03의 "촬영 기준" 탭으로 흡수됨** — 확인(confirm) 상태 추적은 더 이상 없음(단순 참고 목록) |
 
 ## 사진 입력·확인·프레이밍 13종
@@ -189,36 +189,39 @@ src/
 | 05-14 | 사진 교체 확인 | 신규 `ReplacePhotoSheet` — 파괴적 동작이라 확인 시트를 거침. 목적/옵션은 유지, `framing`만 리셋(`setPhoto`가 자동으로 처리) |
 | 05-15 | 사진 사용 확정 | `S07_PhotoConfirm`에 흡수 — 요약 테이블(변경/교체 링크) + 저장 토스트, CTA로 바로 S08(옵션) 진입. 구 `PhotoConfirmFinal`은 삭제됨 |
 
-## 사진 준비 안내 플로우 개편 (S02~S06)
+## 사진 준비 안내 플로우 개편 — 최종 (S02 단일 화면)
 
-Claude Design UX 시안에 맞춰 "이상적인 샘플"과 "촬영 가이드"의 역할을 분리하고, 촬영 전 필수 화면
-수를 줄였습니다.
+"이상적인 샘플"과 "촬영 가이드"가 여러 화면(S02/S03/S04)에 흩어져 있던 것을 **S02_PurposeGuide
+하나**로 최종 통합했습니다. S03_IdealSample과 S04_ShootingGuide는 둘 다 삭제됐습니다.
 
-| 이전 | 이후 |
+| 이전 | 최종 |
 |---|---|
-| S02(목적 안내) → **자세히 보기/사진 준비하기 둘 다 S03로 이동(버그)** → S03(좋은/나쁜 예시) → "촬영 가이드 보기" → S04(6개 아코디언, 별도 화면) → PhotoInputMethod | S02(목적 안내 + 핵심 체크사항, 메인 화면) → **자세히 보기**→S03(정보 전용, `goBack`만) / **사진 준비하기**→PhotoInputMethod 바로 진입 |
-| route 2개(S03, S04)가 순차 강제 | route 1개(S03) — S04는 삭제, 내용은 S03의 "촬영 기준" 탭으로 흡수 |
+| S02(체크리스트만) → 자세히 보기/사진 준비하기 둘 다 S03로 이동(버그) → S03(좋은/나쁜 예시 2탭) → "촬영 가이드 보기" → S04(6항목, 별도 화면) → PhotoInputMethod | **S02 하나**: 이상적인 샘플·핵심 체크리스트·목적별 규격(`SpecList`)·정책이 항상 노출, "피해야 할 사진 예시"·"촬영 기준"은 화면 안 아코디언(기본 접힘) → CTA "사진 준비하기" 하나로 PhotoInputMethod 진입 |
+| route 3개(S02/S03/S04)가 순차 강제, 화면 이동 2회 | route 1개(S02), 화면 이동 0회(전부 같은 화면 안에서 펼침) |
 
-- **S02_PurposeGuide**는 원래부터 제목·핵심 체크리스트(`IDEAL_SAMPLE_CHECKLIST`)·정책 요약을 갖추고
-  있어 큰 변경 없이 "이 사진처럼 준비해 주세요" 메인 화면 역할을 그대로 맡습니다. 유일한 실제 버그
-  수정은 "자세히 보기"/"사진 준비하기" 두 버튼이 같은 화면(S03)으로 가던 것을 각각 S03 / PhotoInputMethod로
-  분리한 것.
-- **S03_IdealSample**은 이제 순수 정보 화면입니다 — 탭이 "좋은 예시"/"피해야 할 예시" 2개에서
-  "촬영 기준"(구 S04의 6개 항목: 얼굴/머리카락/눈과 시선/입과 표정/어깨와 상체/조명과 배경) 1개가
-  늘어 3탭이 됐고, 하단 CTA가 "촬영 가이드 보기"(S04로 이동)에서 "확인했어요"(`goBack()`)로
-  바뀌었습니다. 헤더 타이틀도 "이상적인 샘플" → "사진 준비 기준"으로 역할에 맞게 변경.
-- **S04_ShootingGuide는 삭제**했습니다. 이 화면으로 향하던 모든 경로를 정리:
-  - `S05_Camera`의 "가이드 다시 보기" 헤더 버튼 — **완전히 제거**(촬영 화면은 촬영에만 집중, 준비
-    기준 재확인 기능을 의도적으로 두지 않음)
-  - `S06_Upload`의 사진 권한 거부 시트 "앱에서 새로 촬영하기" — `PhotoInputMethod`로 대상 변경
-  - `S07_PhotoConfirm`의 "촬영 가이드 다시 보기" — `S03_IdealSample`로 대상 변경(라벨도 "사진 준비
-    기준 다시 보기"로 수정)
-  - `entry/PermissionDenied`(01-08, 사진 권한 거부의 "앱에서 새로 촬영하기") — `PhotoInputMethod`로 대상 변경
-  - `NoticeDetail`/`PhotoOrderDetail`의 "다시 만들기" 단축 경로 — `PhotoInputMethod`로 대상 변경
-    (목적만 재선택하고 안내·샘플은 다시 보여주지 않는다는 기존 의도는 그대로 유지)
+- **S02_PurposeGuide**: 기존 체크리스트·정책 박스는 그대로 두고, `POLICY_DETAILS[purposeId].rows`를
+  `SpecList`로 추가해 목적별 실제 규격(mm 수치)을 앞단에서 보여줍니다. "피해야 할 사진 예시"(구
+  S03)와 "촬영 기준"(구 S04의 6항목)은 접힘 아코디언(`＋`/`－` 토글)으로 들어가 기본 화면 길이를
+  관리합니다. "자세히 보기"라는 별도 버튼/화면은 없습니다.
+- **S03_IdealSample / S04_ShootingGuide 둘 다 삭제**. S03의 좋은 예시 탭에 있던 `ImageZoomModal`
+  확대 기능은 S03이 유일한 사용처였는데 함께 정리하면서 **고아 컴포넌트가 되어 `ImageZoomModal.tsx`도
+  함께 삭제**했습니다(중복되는 세부 확대 grid·GOOD_CHECKS 4줄도 기존 5줄 체크리스트와 겹쳐 함께 정리).
+- **`GUIDES`를 공통/목적별로 분리**: `COMMON_GUIDES`(6항목, 모든 목적 공통) + `PURPOSE_GUIDES`(목적별
+  추가 항목, 현재는 `passport`에만 "여권 사진 추가 기준" 1항목)로 나눴습니다. 기존엔 여권 전용 경고
+  문구("여권 사진은 눈동자가...")가 `GUIDES` 배열 하나를 5개 목적이 전부 공유해서 idPhoto·driverLicense·
+  job에서도 그대로 노출되는 문제가 있었는데, 이제 `getGuidesForPurpose(purposeId)`가 공통 6개 +
+  해당 목적 전용 항목만 합쳐 반환합니다. 새 목적이 추가돼도 `PURPOSE_GUIDES`에 항목을 넣지 않는 한
+  다른 목적의 규칙이 섞이지 않습니다.
+- "다시 보기" 링크(`S06_Upload`의 "샘플 다시 보기", `S07_PhotoConfirm`의 "사진 준비 기준 다시 보기")는
+  전부 `S02_PurposeGuide`로 연결하되 **`navigation.push()`를 사용**합니다 — `navigate()`를 쓰면 스택에
+  이미 있는 첫 S02 인스턴스로 점프하면서 그 사이 화면(PhotoInputMethod/S06/S07)이 스택에서 사라져,
+  뒤로가기 시 원래 있던 화면으로 못 돌아가는 문제가 생깁니다. `push()`로 새 인스턴스를 얹으면
+  뒤로가기가 정확히 원래 화면으로 복귀합니다(실제 브라우저 테스트로 확인).
+- `entry/PermissionDenied`(01-08)/`NoticeDetail`/`PhotoOrderDetail`의 구 S04 경유 경로는 전부
+  `PhotoInputMethod`로 대상 변경된 상태 그대로 유지(이전 배치에서 이미 처리).
 - 기존 사진 확인 후 바로 다음 단계로 넘어가는 구조(Crop/얼굴 위치/Framing을 강제하지 않고
   `PhotoAdjustSheet`로 온디맨드 제공)는 지난 배치("촬영·확인 플로우 통합")에서 이미 구현되어
-  이번 변경과 별도 조치 없이 그대로 유지됩니다.
+  이번 변경과 무관하게 그대로 유지됩니다.
 
 ## 촬영·확인 플로우 통합 (User Flow 개편)
 
@@ -372,8 +375,8 @@ PhotoConfirmFinal → S08`로 이어지던 5단계 체인을 `S07 → S08` 2단�
 - 국내 PG SDK(토스페이먼츠/포트원) 연동 — 현재 결제는 mock으로 즉시 성공 처리
 - 온보딩 페이저는 스와이프 지원 포함, 하지만 진입 트랜지션(250ms slide)·바텀시트 등장(300ms
   cubic-bezier) 등 세부 모션은 기본 네이티브 스택 트랜지션으로 단순화했습니다
-- `ImageZoomModal`/`PhotoZoomModal`은 탭-닫기/기준 토글/썸네일 전환만 구현했고, 핀치 줌과 스와이프
-  다운 닫기는 아직 없습니다 (`react-native-gesture-handler` 도입 필요)
+- `PhotoZoomModal`(S07)은 탭-닫기/기준 토글만 구현했고, 핀치 줌과 스와이프 다운 닫기는 아직 없습니다
+  (`react-native-gesture-handler` 도입 필요). 구 `ImageZoomModal`(S03 전용)은 S03 삭제와 함께 제거됨
 - `PhotoAdjustSheet`의 조정은 슬라이더(회전/크기/위치) + 범위 목록뿐 — 자유 드래그·핀치 확대/축소는
   없습니다 (구 `PhotoCrop`의 PanResponder 팬은 User Flow 개편으로 제거됨)
 - Custom Framing(05-13)은 목록에 뜨지만 드래그로 직접 조정하는 인터랙션은 아직 없고, 고정 미리보기만

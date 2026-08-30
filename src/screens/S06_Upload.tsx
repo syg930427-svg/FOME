@@ -105,7 +105,9 @@ export default function S06_Upload({ navigation }: Props) {
       </ScrollView>
 
       <View style={styles.ctaArea}>
-        <TextButton label="샘플 다시 보기" onPress={() => navigation.navigate('S03_IdealSample')} />
+        {/* push 사용: navigate는 스택에 이미 있는 S02로 점프하며 이 화면을
+            스택에서 지워버려, 뒤로가기 시 PhotoInputMethod로 못 돌아간다. */}
+        <TextButton label="샘플 다시 보기" onPress={() => navigation.push('S02_PurposeGuide')} />
         <PrimaryButton label="갤러리에서 선택" onPress={handlePick} />
       </View>
 
