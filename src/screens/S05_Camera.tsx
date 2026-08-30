@@ -3,7 +3,7 @@ import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { uploadPhoto } from '../api';
+import { PURPOSES, uploadPhoto } from '../api';
 import { PrimaryButton, ScreenHeader, SecondaryButton } from '../components';
 import { ErrorGlyph } from '../components/EntryIcons';
 import { RootStackParamList } from '../navigation/types';
@@ -28,6 +28,12 @@ export default function S05_Camera({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
+  const purposeId = useSession((s) => s.purposeId);
+  const purpose = PURPOSES.find((p) => p.id === purposeId);
+  // PURPOSES.title 표기가 목적마다 다름('여권 사진' vs '증명사진' vs '이력서') — " 사진" 접미사만
+  // 제거해 "{purposeShort} 촬영"으로 통일. 프로젝트 전역에서 이미 쓰는 short-label 패턴과 동일.
+  const purposeShort = purpose?.title.replace(' 사진', '') ?? '증명사진';
+  const cameraTitle = `${purposeShort} 촬영`;
 
   async function handleShutter() {
     if (!cameraRef.current || capturing) return;
@@ -88,7 +94,7 @@ export default function S05_Camera({ navigation }: Props) {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.dark} edges={['top', 'bottom']}>
-        <ScreenHeader title="여권 촬영" closeIcon onBack={navigation.goBack} dark />
+        <ScreenHeader title={cameraTitle} closeIcon onBack={navigation.goBack} dark />
         <View style={styles.permissionBody}>
           <Text style={styles.permissionTitle}>카메라 접근이 필요해요</Text>
           <Text style={styles.permissionText}>사진 촬영을 위해 카메라 권한을 허용해 주세요.</Text>
@@ -101,7 +107,7 @@ export default function S05_Camera({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.dark} edges={['top', 'bottom']}>
       {/* 촬영 화면은 촬영에만 집중 — 준비 기준 재확인 CTA는 의도적으로 없음(S02/S03에서 이미 확인 완료). */}
-      <ScreenHeader title="여권 촬영" closeIcon onBack={navigation.goBack} dark />
+      <ScreenHeader title={cameraTitle} closeIcon onBack={navigation.goBack} dark />
 
       <View style={styles.previewWrap}>
         <CameraView

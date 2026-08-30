@@ -2,7 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { confirmOrder, createOrder, PRODUCTS } from '../api';
+import { confirmOrder, createOrder, PRODUCTS, PURPOSES } from '../api';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, TextButton, SpecList } from '../components';
 import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/auth';
@@ -19,8 +19,11 @@ export default function S12_Payment({ navigation }: Props) {
   const photo = useSession((s) => s.photo);
   const markPaid = useSession((s) => s.markPaid);
   const reset = useSession((s) => s.reset);
+  const purposeId = useSession((s) => s.purposeId);
   const isLoggedIn = useAuth((s) => s.isLoggedIn);
   const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
+  const purpose = PURPOSES.find((p) => p.id === purposeId);
+  const purposeShort = purpose?.title.replace(' 사진', '') ?? '증명사진';
 
   async function handlePay() {
     if (paying) return;
@@ -91,7 +94,7 @@ export default function S12_Payment({ navigation }: Props) {
           boxed
           rows={[
             { label: '파일 형식', value: 'JPG · 300dpi' },
-            { label: '규격', value: '여권 35×45mm' },
+            { label: '규격', value: `${purposeShort} 35×45mm` },
             { label: '추가 재생성', value: '건당 500원' },
           ]}
         />

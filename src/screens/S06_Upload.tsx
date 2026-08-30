@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { uploadPhoto } from '../api';
+import { PURPOSES, uploadPhoto } from '../api';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton, TextButton } from '../components';
 import { PhotoGlyph } from '../components/EntryIcons';
 import { PermissionSheet } from '../components/PermissionSheet';
@@ -17,6 +17,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'S06_Upload'>;
 export default function S06_Upload({ navigation }: Props) {
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
+  const purposeId = useSession((s) => s.purposeId);
+  const purpose = PURPOSES.find((p) => p.id === purposeId);
+  const purposeShort = purpose?.title.replace(' 사진', '') ?? '증명사진';
+  // "에 사용할"은 목적명 끝음절과 무관하게(받침 유무 상관없이) 조사 없이 항상 자연스러워
+  // idPhoto/passport/residentId/driverLicense/job 5종 전부에서 그대로 맞는다.
+  const pickTitle = `${purposeShort}에 사용할 사진을 골라주세요`;
   const [sheetVisible, setSheetVisible] = useState(false);
   const [loadErrorVisible, setLoadErrorVisible] = useState(false);
   const [pendingAsset, setPendingAsset] = useState<{ uri: string; width: number; height: number } | null>(null);
@@ -69,7 +75,7 @@ export default function S06_Upload({ navigation }: Props) {
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>여권용 사진을 골라주세요</Text>
+          <Text style={styles.title}>{pickTitle}</Text>
           <Text style={styles.subtitle}>자동 규격 판정은 하지 않아요. 아래 기준으로 직접 고르면 돼요.</Text>
         </View>
 
