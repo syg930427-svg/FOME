@@ -29,8 +29,10 @@ type Tab = 'result' | 'compare' | 'settings';
  * 핵심 문제). 이제 `activeGenerationId`로 실제 Generation 이력을 조회해서
  * 읽고, `generation.isPaid`로 PREVIEW/PAID 두 렌더를 하나의 화면 안에서
  * 전환한다 — 별도 결과 화면을 두 개 만들지 않는다(PhotoFlow 최종 스펙 §3).
- * 결제 자체(Phase 6)가 아직 없어 오늘은 `isPaid`가 늘 false로 보이는 게
- * 정상이다 — S12가 아직 `markGenerationPaid()`를 호출하지 않기 때문.
+ * Phase 6: S12가 결제 성공 시 `markGenerationPaid()`를 호출해 같은
+ * generationId의 `isPaid`를 true로 바꾼다. S12는 이 화면 위에 push된
+ * 채였다가 goBack()으로 닫히므로 이 컴포넌트는 다시 마운트되지 않고,
+ * 구독 중인 `generation.isPaid` 변화만으로 Paid 렌더로 자동 전환된다.
  */
 export default function S11_Preview({ navigation, route }: Props) {
   const [tab, setTab] = useState<Tab>('result');
@@ -141,7 +143,10 @@ export default function S11_Preview({ navigation, route }: Props) {
         {isPaid ? (
           <>
             <PrimaryButton label="고화질 다운로드" onPress={handleDownload} />
-            <SecondaryButton label="옵션 수정하고 다시 생성" onPress={() => navigation.navigate('S08_Options')} />
+            <SecondaryButton
+              label="옵션 수정하고 다시 생성"
+              onPress={() => navigation.navigate('S08_Options', { mode: 'paidRegen' })}
+            />
             <View style={styles.linkRow}>
               <TextButton label="내 사진" onPress={() => navigation.navigate('MyPhotos')} />
               <TextButton label="홈으로" onPress={() => navigation.popToTop()} />

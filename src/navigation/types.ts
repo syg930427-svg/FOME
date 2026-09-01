@@ -25,7 +25,9 @@ export type RootStackParamList = {
   // FramingSelect/PhotoConfirmFinal 4개 route는 PhotoAdjustSheet(Bottom
   // Sheet)로 흡수되어 더 이상 존재하지 않는다.
   S07_PhotoConfirm: undefined;
-  S08_Options: undefined;
+  // Phase 6: mode?:'paidRegen' — Paid 상태 S11의 "옵션 수정하고 다시 생성"이
+  // 이 값과 함께 진입한다. 없으면(undefined) 기존 Preview 편집 흐름과 동일.
+  S08_Options: { mode?: 'paidRegen' } | undefined;
   S09_FinalConfirm: undefined;
   // Phase 4: 결제(amount)와 완전히 분리 — 이 화면은 이제 순수 "생성 시작됨"
   // 전환 화면이고, generationId만 넘겨 S10으로 이어준다.

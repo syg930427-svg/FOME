@@ -1,5 +1,5 @@
-import { GENERATION_PACKAGES, GENERATION_STEPS, MOCK_CREDIT_BALANCE, POLICIES, PRODUCTS } from './mockData';
-import { Generation, GenerationOptions, GenerationOrder, Order, PhotoUploadResult, Policy, PurposeId } from './types';
+import { GENERATION_STEPS, POLICIES, PRODUCTS_V2 } from './mockData';
+import { Generation, GenerationOptions, Order, PhotoUploadResult, Policy, ProductId, PurposeId } from './types';
 
 /**
  * Mock implementation of the server API described in the design handoff
@@ -34,19 +34,6 @@ export async function getPolicy(purposeId: PurposeId): Promise<Policy> {
 export async function uploadPhoto(_uri: string): Promise<PhotoUploadResult> {
   await delay(400);
   return { photoId: `photo_${Date.now()}` };
-}
-
-/**
- * 07-03/07-04 — pay for a generation attempt (1/4/8 candidate photos), the
- * mock wallet balance applied first. This is a separate purchase from the
- * post-preview high-res download at S12 — you're paying here for the
- * attempt itself, not yet for a specific finished file.
- */
-export async function payForGeneration(count: 1 | 4 | 8): Promise<GenerationOrder> {
-  await delay(400);
-  const pkg = GENERATION_PACKAGES.find((p) => p.count === count) ?? GENERATION_PACKAGES[1];
-  const amount = Math.max(0, pkg.price - MOCK_CREDIT_BALANCE);
-  return { orderId: `gen_order_${Date.now()}`, count, amount };
 }
 
 /** 3. POST /v1/generations — identityLock/preserveHair are server-forced constants, never sent. */
@@ -99,13 +86,31 @@ export function generationStepLabel(index: number) {
   return GENERATION_STEPS[index] ?? '';
 }
 
-/** 5. POST /v1/orders → PG SDK → POST /v1/orders/{id}/confirm. PG handoff is mocked as an instant success. */
-export async function createOrder(productId: string): Promise<Order> {
+/**
+ * 5. POST /v1/orders → PG SDK → POST /v1/orders/{id}/confirm. PG handoff is
+ * mocked as an instant success. Phase 6: S09에서 이미 확정된 productId와, 이
+ * 결제로 Paid 전환될 generationId를 그대로 받아 Order에 못 박는다(안 A — 새
+ * Generation을 만들지 않고 기존 것을 그대로 연결). `expiresAt`은 이 mock에
+ * Order 저장소가 없어(실제 서버 없음) product.retentionDays로 즉시 계산해
+ * 반환값에 담아준다.
+ */
+export async function createOrder(productId: ProductId, generationId: string): Promise<Order> {
   await delay(300);
-  const product = PRODUCTS.find((p) => p.id === productId) ?? PRODUCTS[0];
-  return { orderId: `order_${Date.now()}`, productId: product.id, amount: product.price };
+  const product = PRODUCTS_V2.find((p) => p.id === productId) ?? PRODUCTS_V2[0];
+  const now = Date.now();
+  return {
+    orderId: `order_${now}`,
+    productId: product.id,
+    generationId,
+    amount: product.price,
+    status: 'pending',
+    createdAt: new Date(now).toISOString(),
+    paidAt: null,
+    expiresAt: new Date(now + product.retentionDays * 24 * 60 * 60 * 1000).toISOString(),
+  };
 }
 
+/** PG 확인 성공 여부만 반환 — 실제 Order를 paid로 표시하는 건 호출부(S12)가 createOrder의 반환값에 status/paidAt을 합성해서 처리한다(이 mock엔 서버측 Order 저장소가 없음). */
 export async function confirmOrder(orderId: string): Promise<{ confirmed: true }> {
   await delay(500);
   void orderId;

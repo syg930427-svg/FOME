@@ -207,20 +207,7 @@ export const POLICY_DETAILS: Record<PurposeId, { subtitle: string; rows: { label
 
 export const POLICY_AI_DOES_NOT = ['얼굴 골격·이목구비 위치 변경', '안경 착용 여부 변경', '나이·성별로 보이는 특징 변경'];
 
-/** @deprecated "1/4/8장" 개념 자체가 PhotoFlow 최종 스펙에서 폐기됨 — PRODUCTS_V2로 대체 예정(Phase 3). */
-export const GENERATION_PACKAGES: {
-  count: 1 | 4 | 8;
-  price: number;
-  originalPrice?: number;
-  description: string;
-  recommended?: boolean;
-}[] = [
-  { count: 1, price: 2900, description: '가장 저렴하게' },
-  { count: 4, price: 5900, originalPrice: 11600, description: '배경·보정 조합을 비교', recommended: true },
-  { count: 8, price: 8900, description: '여러 목적에 함께 사용' },
-];
-
-/** Mock wallet balance applied against the generation package price at 07-03/07-04. */
+/** Mock wallet balance — 로그인 잔액 표시 등에 쓰이는 값(useAuth 참고). */
 export const MOCK_CREDIT_BALANCE = 2000;
 
 /**
@@ -250,27 +237,13 @@ export const COMPOSITION_OPTIONS: {
   { id: 'upperBody', title: '상반신', subtitle: '상체 전체', topPct: 0.24, sidePct: 0.03, faceScale: 0.48 },
 ];
 
-/** @deprecated Phase 3에서 PRODUCTS_V2로 완전히 교체 예정 — 지금은 S12_Payment.tsx가 그대로 사용 중이라 남겨둠. */
-export const PRODUCTS = [
-  {
-    id: 'basic',
-    title: '기본 · 고화질 디지털 파일',
-    description: '규격 파일 1종 · 1회 무료 재생성 포함',
-    price: 2900,
-  },
-  {
-    id: 'premium',
-    title: '프리미엄 · 여러 스타일',
-    description: '스타일 3종 + 인쇄용 분할 파일',
-    price: 5900,
-  },
-];
-
 /**
  * 5개 상품 등급 (PhotoFlow 최종 스펙 §1) — "1장/4장/8장" 개념 완전 폐기.
  * "목적/규격 수"(specCount)와 "무료 재생성 횟수"(freeRegenCount)는 서로 다른
- * 축의 데이터임을 타입 레벨에서도 분리해 유지한다. Phase 3에서 S09/S12가
- * 이 배열로 옮겨가면 위 `PRODUCTS`와 `GENERATION_PACKAGES`는 제거한다.
+ * 축의 데이터임을 타입 레벨에서도 분리해 유지한다. S09/S12 모두 이 배열만
+ * 사용한다 — 옛 `PRODUCTS`(2-tier)/`GENERATION_PACKAGES`는 Phase 6에서 완전히
+ * 제거됨(마지막 소비처였던 S12_Payment.tsx가 이제 session.productId로 이미
+ * 정해진 상품을 여기서 조회만 함).
  */
 export const PRODUCTS_V2: Product[] = [
   { id: 'basic', name: '베이직', price: 2900, specCount: 1, retouchLevel: 'basic', freeRegenCount: 1, hiResIncluded: true, printSets: 0, addonRegenPrice: 500, addonPrintPrice: 7000, shippingFee: 3000, retentionDays: 30 },

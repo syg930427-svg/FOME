@@ -75,10 +75,10 @@ type SessionState = {
   /** 08-03 — which of the batch results the user picked to carry into S11/S12. */
   resultIndex: number;
   /**
-   * @deprecated Generation별 `isPaid`로 대체됐다(위 GenerationRecord 참고).
-   * `S12_Payment.tsx`가 Phase 6 전까지는 아직 이 top-level 플래그만 세팅하므로
-   * 지우지 않는다 — 즉 지금은 S12에서 결제해도 어떤 GenerationRecord의
-   * isPaid도 실제로 true가 되지 않는다(Phase 6에서 연결 예정, 남은 리스크로 보고).
+   * @deprecated Generation별 `isPaid`로 완전히 대체됐다(위 GenerationRecord 참고).
+   * Phase 6부터 `S12_Payment.tsx`는 이 필드를 더 이상 세팅하지 않는다 —
+   * 실제 결제 성공 여부는 이제 `getActiveGeneration()?.isPaid`로 읽는다.
+   * 호출부가 없어졌을 뿐 다른 화면이 이 필드를 읽지는 않아 타입은 그대로 둔다.
    */
   paid: boolean;
   orderId: string | null;

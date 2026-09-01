@@ -1,7 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { createGeneration, PRODUCTS_V2 } from '../api';
 import { COMPOSITION_OPTIONS, POLICIES } from '../api/mockData';
 import { CompositionId, RetouchLevel } from '../api/types';
 import { Chip, InfoBanner, PhotoPlaceholder, PrimaryButton, ScreenHeader } from '../components';
@@ -26,12 +27,30 @@ const COMPOSITION_LABEL: Record<CompositionId, string> = Object.fromEntries(
   COMPOSITION_OPTIONS.map((o) => [o.id, o.title])
 ) as Record<CompositionId, string>;
 
-export default function S08_Options({ navigation }: Props) {
+/**
+ * Phase 6 — `mode==='paidRegen'`이면 Paid 상태 S11에서 진입한 것이라 S09(상품
+ * 재선택/Preview Credit 확인)를 완전히 건너뛴다. 이 화면 자체의 옵션 UI는
+ * 그대로 재사용하고, 하단 CTA만 "재생성하기"로 바뀌어 여기서 곧장 생성을
+ * 요청한다 — S09_FinalConfirm.handleMakePreview와 같은 패턴이되 상품 확인
+ * 단계가 없고 paidRegenCreditRemaining을 대신 소모한다.
+ */
+export default function S08_Options({ navigation, route }: Props) {
+  const mode = route.params?.mode;
+  const isPaidRegen = mode === 'paidRegen';
+
   const purposeId = useSession((s) => s.purposeId);
   const options = useSession((s) => s.options);
   const setOption = useSession((s) => s.setOption);
+  const photoId = useSession((s) => s.photoId);
+  const policyId = useSession((s) => s.policyId);
+  const productId = useSession((s) => s.productId);
+  const paidRegenCreditRemaining = useSession((s) => s.paidRegenCreditRemaining);
+  const consumePaidRegenCredit = useSession((s) => s.consumePaidRegenCredit);
+  const addGeneration = useSession((s) => s.addGeneration);
   const policy = purposeId ? POLICIES[purposeId] : null;
   const lockedHair = new Set(policy?.lockedOptions.hair ?? []);
+
+  const [submitting, setSubmitting] = useState(false);
 
   // 구도(composition) — 목적 정책의 optionGroups[key='composition']만 읽는다. 하드코딩 금지.
   const compositionGroup = policy?.optionGroups.find((g) => g.key === 'composition');
@@ -48,9 +67,47 @@ export default function S08_Options({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purposeId]);
 
+  // paidRegen 전용: 이미 결제한 상품이 지원하지 않는 '고급' 보정을 이 화면에서
+  // 새로 고를 수 없게 한다(S09가 하던 검증을 S09를 건너뛰는 이 경로에서 대신
+  // 수행 — 새로운 상품 정책을 만들지 않고 기존 Product.retouchLevel만 읽음).
+  const paidProduct = isPaidRegen && productId ? PRODUCTS_V2.find((p) => p.id === productId) : null;
+  const retouchLockedByProduct = paidProduct?.retouchLevel === 'basic';
+
+  useEffect(() => {
+    if (retouchLockedByProduct && options.retouch === 'premium') {
+      setOption('retouch', 'basic');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retouchLockedByProduct]);
+
+  async function handleRegenerate() {
+    if (submitting || !photoId || !policyId || paidRegenCreditRemaining <= 0) return;
+    setSubmitting(true);
+    try {
+      const { generationId, etaSeconds } = await createGeneration(
+        photoId,
+        policyId,
+        { hair: options.hair, expression: options.expression, background: options.background },
+        1
+      );
+      // Preview Credit과 완전히 분리된 카운터 — 생성 성공 뒤에만 차감(실패 시 롤백 불필요).
+      consumePaidRegenCredit();
+      addGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds, isPaid: true });
+      navigation.navigate('GenerationStarted', { generationId });
+    } catch {
+      Alert.alert('생성을 시작하지 못했어요', '잠시 후 다시 시도해 주세요. 무료 재생성 횟수는 차감되지 않았어요.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScreenHeader title="스타일 선택" onBack={navigation.goBack} right={<Text style={styles.progress}>4 / 6</Text>} />
+      <ScreenHeader
+        title="스타일 선택"
+        onBack={navigation.goBack}
+        right={!isPaidRegen ? <Text style={styles.progress}>4 / 6</Text> : undefined}
+      />
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         <View style={styles.summaryCard}>
@@ -146,23 +203,41 @@ export default function S08_Options({ navigation }: Props) {
         <View style={styles.group}>
           <Text style={styles.groupTitle}>보정</Text>
           <View style={styles.chipRow}>
-            {(['basic', 'premium'] as const).map((value) => (
-              <Chip
-                key={value}
-                label={RETOUCH_LABEL[value]}
-                tone={options.retouch === value ? 'selectedDark' : 'default'}
-                onPress={() => setOption('retouch', value)}
-              />
-            ))}
+            {(['basic', 'premium'] as const).map((value) => {
+              const locked = retouchLockedByProduct && value === 'premium';
+              return (
+                <Chip
+                  key={value}
+                  label={RETOUCH_LABEL[value]}
+                  badge={locked ? '상품 미포함' : undefined}
+                  tone={locked ? 'locked' : options.retouch === value ? 'selectedDark' : 'default'}
+                  onPress={locked ? undefined : () => setOption('retouch', value)}
+                />
+              );
+            })}
           </View>
-          {/* 상품 등급별 '고급' 보정 활성/비활성 연동은 S09 상품 선택(Phase 3) 이후 배선 — 지금은 둘 다 선택 가능. */}
+          {/* 일반 Preview 편집(S09 이후 재확인)에선 둘 다 선택 가능 — paidRegen일 때만 결제한 상품 등급으로 제한(위 retouchLockedByProduct). */}
         </View>
 
         <InfoBanner tone="info" text="옵션을 고르는 동안에는 AI 생성을 하지 않아요. 최종 확인 후 1번만 생성해요." />
       </ScrollView>
 
       <View style={styles.ctaArea}>
-        <PrimaryButton label="최종 설정 확인" onPress={() => navigation.navigate('S09_FinalConfirm')} />
+        {isPaidRegen ? (
+          <>
+            <PrimaryButton
+              label="재생성하기"
+              loading={submitting}
+              disabled={paidRegenCreditRemaining <= 0}
+              onPress={handleRegenerate}
+            />
+            <Text style={styles.creditCaption}>
+              {paidRegenCreditRemaining > 0 ? `무료 재생성 ${paidRegenCreditRemaining}회 남음` : '무료 재생성을 모두 사용했어요'}
+            </Text>
+          </>
+        ) : (
+          <PrimaryButton label="최종 설정 확인" onPress={() => navigation.navigate('S09_FinalConfirm')} />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -186,5 +261,6 @@ const styles = StyleSheet.create({
   groupBadgeTextNeutral: { color: colors.textTertiary },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   lockReasonText: { fontSize: 12, lineHeight: 12 * 1.5, color: colors.textDisabled },
-  ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28 },
+  ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 8 },
+  creditCaption: { textAlign: 'center', fontSize: 12, color: colors.textDisabled },
 });

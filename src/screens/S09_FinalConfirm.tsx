@@ -45,10 +45,10 @@ const RETOUCH_LABEL: Record<RetouchLevel, string> = { basic: '기본', premium: 
  * S09(07-01) — 상품 선택 + 최종 설정. PhotoFlow 최종 스펙: 이 화면은 결제
  * 화면이 아니다 — [미리보기 만들기]는 Preview Credit만 소모하고 결제는
  * 발생하지 않는다("지금은 결제되지 않아요"). 1/4/8장 개념(GenerationPackagePicker/
- * GenerationConfirmSheet/payForGeneration)은 여기서 완전히 제거됐다 — 단
- * `session.generationCount`/`GENERATION_PACKAGES` 자체는 S10/S12가 아직
- * 참조하고 있어(이번 Phase 대상 아님) 삭제하지 않고, 여기선 결과 1장짜리
- * Preview라는 의미로 1을 고정 전달한다.
+ * GenerationConfirmSheet/payForGeneration)은 여기서 완전히 제거됐고, Phase 6에서
+ * `GENERATION_PACKAGES`/구 `PRODUCTS`/`payForGeneration()` 자체도 정리됐다.
+ * `session.generationCount`만 S10이 여전히 참조하고 있어(폴링 응답 batch 크기) 남겨두고,
+ * 여기선 결과 1장짜리 Preview라는 의미로 1을 고정 전달한다.
  */
 export default function S09_FinalConfirm({ navigation }: Props) {
   const purposeId = useSession((s) => s.purposeId);

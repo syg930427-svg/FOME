@@ -164,7 +164,9 @@ export default function S10_Generating({ navigation, route }: Props) {
         { hair: options.hair, expression: options.expression, background: options.background },
         1
       );
-      addGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds, isPaid: false });
+      // 실패했던 시도가 paidRegen 출신(isPaid:true로 만들어졌던 것)이면 재시도도
+      // 그대로 Paid 상태를 유지한다 — Preview였다면 계속 Preview로 남는다.
+      addGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds, isPaid: generation?.isPaid ?? false });
       setPhase('progress');
     } finally {
       setRetrying(false);

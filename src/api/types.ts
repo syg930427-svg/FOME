@@ -101,6 +101,23 @@ export type Generation = {
   results: string[] | null;
 };
 
-export type Order = { orderId: string; productId: string; amount: number };
+/**
+ * Phase 6 — 결제(Order) 상태. My Photos의 `PhotoOrder.status`(purchased/unpaid/
+ * expired, mockData.ts)와는 다른 개념이라 이름이 겹치지 않도록 `PaymentStatus`로
+ * 명명했다(원 지시문의 `OrderStatus`는 이미 barrel export에서 충돌 — 값 자체는
+ * 동일하게 유지).
+ */
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
-export type GenerationOrder = { orderId: string; count: number; amount: number };
+/** Phase 6 — Generation과 `generationId`로 직접 연결된다(안 A: 새 Generation을 만들지 않음). */
+export type Order = {
+  orderId: string;
+  productId: ProductId;
+  generationId: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+  paidAt: string | null;
+  /** productId의 retentionDays로 계산됨 — createOrder() 참고. */
+  expiresAt: string;
+};
