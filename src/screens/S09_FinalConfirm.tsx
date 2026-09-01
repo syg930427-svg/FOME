@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createGeneration, PRODUCTS_V2, PURPOSES } from '../api';
 import { CompositionId, RetouchLevel } from '../api/types';
@@ -90,6 +90,8 @@ export default function S09_FinalConfirm({ navigation }: Props) {
     setSubmitting(true);
     try {
       setGenerationCount(1); // Preview = 결과 1장. S10/S12가 아직 쓰는 필드라 값만 맞춰 넘겨준다.
+      // Phase 4 사전 확인 ②: createGeneration이 성공한 뒤에만 Credit을 차감한다 — 실패(reject)
+      // 시엔 아래 catch로 빠져 consumePreviewCredit() 자체가 실행되지 않으므로 별도 롤백이 필요 없다.
       const { generationId, etaSeconds } = await createGeneration(
         photoId,
         policyId,
@@ -97,9 +99,10 @@ export default function S09_FinalConfirm({ navigation }: Props) {
         1
       );
       consumePreviewCredit();
-      setGeneration({ id: generationId, status: 'queued', progress: 0, etaSeconds });
-      // amount: 0 — 이 시점엔 결제가 없으므로 GenerationStarted의 "결제 완료" 토스트는 뜨지 않는다.
-      navigation.navigate('GenerationStarted', { amount: 0 });
+      setGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds });
+      navigation.navigate('GenerationStarted', { generationId });
+    } catch {
+      Alert.alert('생성을 시작하지 못했어요', '잠시 후 다시 시도해 주세요. Preview Credit은 차감되지 않았어요.');
     } finally {
       setSubmitting(false);
     }

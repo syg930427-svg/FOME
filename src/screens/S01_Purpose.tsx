@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPolicy, PURPOSES } from '../api';
 import { PurposeId } from '../api/types';
@@ -43,8 +43,13 @@ const STATUS_BADGE: Record<string, string> = { purchased: '완성', unpaid: '미
  */
 export default function S01_Purpose({ navigation }: Props) {
   const selectPurpose = useSession((s) => s.selectPurpose);
+  const generation = useSession((s) => s.generation);
   const orders = useMyPhotos((s) => s.orders);
   const unreadNoticeCount = useNotices((s) => s.notices.filter((n) => !n.read).length);
+  // Phase 4 — S10에서 홈으로 나가도 generation은 세션에 그대로 남는다("사라지면
+  // 안 됨"). 완성/실패까지 다룬 상태 카드(My Photos 연동)는 다음 Phase 과제이고,
+  // 지금은 "다시 이어 보기" 연결 지점만 최소로 유지한다.
+  const generationInProgress = generation && (generation.status === 'queued' || generation.status === 'running');
 
   const [submittingId, setSubmittingId] = useState<PurposeId | null>(null);
 
@@ -96,6 +101,17 @@ export default function S01_Purpose({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {generationInProgress && (
+          <Pressable
+            style={styles.generationCard}
+            onPress={() => navigation.navigate('S10_Generating', { generationId: generation.id })}
+          >
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.generationCardText}>사진을 만들고 있어요</Text>
+            <Text style={styles.generationCardLink}>확인하기</Text>
+          </Pressable>
+        )}
+
         <View style={styles.titleBlock}>
           <Text style={styles.title}>어떤 사진이{'\n'}필요하세요?</Text>
           <Text style={styles.subtitle}>목적만 고르면 규격·배경·보정까지 알아서 맞춰드려요.</Text>
@@ -179,6 +195,9 @@ const styles = StyleSheet.create({
   bellWrap: { marginLeft: 'auto', width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
   bellDot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.error, borderWidth: 1.5, borderColor: colors.surface },
   scrollContent: { paddingHorizontal: spacing.screenPadding, paddingTop: 10, paddingBottom: 24, gap: 26 },
+  generationCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderRadius: 14, backgroundColor: colors.primaryTint },
+  generationCardText: { flex: 1, fontSize: 13.5, fontWeight: '700', color: colors.textPrimary },
+  generationCardLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
   titleBlock: { gap: 9 },
   title: { fontSize: 25, fontWeight: '700', letterSpacing: -0.5, lineHeight: 25 * 1.35, color: colors.textPrimary },
   subtitle: { fontSize: 14, lineHeight: 14 * 1.6, color: colors.textTertiary },

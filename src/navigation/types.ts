@@ -27,8 +27,12 @@ export type RootStackParamList = {
   S07_PhotoConfirm: undefined;
   S08_Options: undefined;
   S09_FinalConfirm: undefined;
-  GenerationStarted: { amount: number };
-  S10_Generating: undefined;
+  // Phase 4: 결제(amount)와 완전히 분리 — 이 화면은 이제 순수 "생성 시작됨"
+  // 전환 화면이고, generationId만 넘겨 S10으로 이어준다.
+  GenerationStarted: { generationId: string };
+  // generationId를 필수로 받는다 — 나중에 푸시 알림/딥링크로 특정 generation을
+  // 곧장 열 수 있도록 route 자체를 처음부터 이 모양으로 설계해 둔다(Phase 4).
+  S10_Generating: { generationId: string };
   S11_Preview: undefined;
   S12_Payment: undefined;
 

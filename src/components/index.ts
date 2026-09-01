@@ -13,8 +13,6 @@ export { FramingPreview } from './FramingPreview';
 export { PolicyDetailModal } from './PolicyDetailModal';
 export { ProductPicker } from './ProductPicker';
 export { ProductCompareModal } from './ProductCompareModal';
-export { RegenerateSheet } from './RegenerateSheet';
-export type { RegenerateChoice } from './RegenerateSheet';
 export { BottomTabBar } from './BottomTabBar';
 export type { TabKey } from './BottomTabBar';
 export { PhotoListItem } from './PhotoListItem';

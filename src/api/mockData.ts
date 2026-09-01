@@ -148,8 +148,6 @@ export const GENERATION_STEPS = [
   '마지막으로 사진을 정리해요',
 ];
 
-/** 08-02 — richer progress screen's step-list labels (task-in-progress phrasing, not past-tense). */
-export const GENERATION_STEP_LABELS = ['얼굴 위치 정렬', '배경 정리', '피부·조명 보정', '규격 맞춰 자르기'];
 
 /** 08-04 — shown when a generation attempt fails (face not detected, the mock's only reachable reason). */
 export const GENERATION_FAILURE_TIPS = [

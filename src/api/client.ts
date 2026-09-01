@@ -64,32 +64,34 @@ export async function createGeneration(
 }
 
 /**
- * 4. GET /v1/generations/{id} — real backend is 2s-polled or SSE; the mock
- * advances progress deterministically each call so a fixed-interval poller
- * (see S10) reaches `done` in ~4 polls. previewUrl/results carry a watermark
- * until paid at S12.
+ * 4. GET /v1/generations/{id} — real backend is 2s-polled or SSE. Phase 4:
+ * 이 mock은 실제 서버가 아니라서 세부 단계를 알 수 없다 — 그래서 절대
+ * 가짜 퍼센트를 계산해 채우지 않고 `steps: null`만 반환한다(화면은 이걸
+ * neutral 로딩으로 표시해야 한다). "몇 번 폴링했는지"만 내부적으로 세어
+ * 적당한 시점에 done으로 넘길 뿐 — 이 카운트 자체는 절대 화면에 노출하지
+ * 않는다. previewUrl/results carry a watermark until paid at S12.
  */
-const mockGenerationProgress = new Map<string, number>();
+const mockGenerationPollCount = new Map<string, number>();
+const POLLS_UNTIL_DONE = 3;
 
 export async function getGeneration(generationId: string, count: 1 | 4 | 8 = 1): Promise<Generation> {
   await delay(200);
-  const prev = mockGenerationProgress.get(generationId) ?? 0;
-  const next = Math.min(100, prev + 34);
-  mockGenerationProgress.set(generationId, next);
-  const status: Generation['status'] = next >= 100 ? 'done' : 'running';
+  const polls = (mockGenerationPollCount.get(generationId) ?? 0) + 1;
+  mockGenerationPollCount.set(generationId, polls);
+  const status: Generation['status'] = polls >= POLLS_UNTIL_DONE ? 'done' : 'running';
   return {
     generationId,
     status,
-    progress: next,
+    steps: null,
     previewUrl: status === 'done' ? 'mock://generated-preview-watermarked' : null,
     results: status === 'done' ? Array.from({ length: count }, (_, i) => `mock://result-${generationId}-${i}`) : null,
   };
 }
 
-/** Refunds the mock credit and clears local progress — used by 08-02's "만들기 취소". */
+/** Refunds the mock credit and clears local poll state — used by S10's cancel path (현재 UI에서는 미노출, 함수는 보존). */
 export async function cancelGeneration(generationId: string): Promise<{ cancelled: true }> {
   await delay(300);
-  mockGenerationProgress.delete(generationId);
+  mockGenerationPollCount.delete(generationId);
   return { cancelled: true };
 }
 

@@ -83,10 +83,19 @@ export type GenerationOptions = {
 
 export type GenerationStatus = 'idle' | 'queued' | 'running' | 'done' | 'failed';
 
+export type GenerationStepState = 'done' | 'active' | 'pending';
+export type GenerationStep = { id: string; label: string; state: GenerationStepState };
+
+/**
+ * Phase 4 — `progress: number`(가짜 %) 필드를 완전히 제거했다. 서버가 실제
+ * 세부 단계를 제공하는 경우에만 `steps`가 채워지고, 그렇지 않으면(지금의
+ * mock처럼) `steps: null`이며 화면은 neutral 로딩만 보여줘야 한다 — 있지도
+ * 않은 진행률을 계산해서 채우지 않는다.
+ */
 export type Generation = {
   generationId: string;
   status: GenerationStatus;
-  progress: number; // 0-100
+  steps: GenerationStep[] | null;
   previewUrl: string | null;
   /** Populated once status is 'done' — one preview per photo in the requested batch. */
   results: string[] | null;

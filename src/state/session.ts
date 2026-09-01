@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CompositionId, GenerationStatus, ProductId, PurposeId, RetouchLevel, SourceCrop } from '../api/types';
+import { CompositionId, GenerationStatus, GenerationStep, ProductId, PurposeId, RetouchLevel, SourceCrop } from '../api/types';
 
 export type Photo = { uri: string; width: number; height: number };
 
@@ -20,10 +20,11 @@ export type Options = {
   retouch: RetouchLevel;
 };
 
+/** Phase 4 — `progress: number`(가짜 %) 제거, `steps`(서버가 실제 단계를 줄 때만 채움)로 대체. */
 export type GenerationState = {
   id: string;
   status: GenerationStatus;
-  progress: number;
+  steps: GenerationStep[] | null;
   previewUrl?: string;
   results?: string[];
   etaSeconds?: number;
