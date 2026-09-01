@@ -1,6 +1,6 @@
 import type { FramingId } from '../state/session';
 import type { LanguageCode, RetentionPolicyId } from '../state/settings';
-import { Policy, PurposeId } from './types';
+import { OptionGroupPolicy, Policy, Product, PurposeId } from './types';
 
 export const PURPOSES: {
   id: PurposeId;
@@ -66,6 +66,21 @@ export function getGuidesForPurpose(purposeId: PurposeId): GuideItem[] {
   return [...COMMON_GUIDES, ...(PURPOSE_GUIDES[purposeId] ?? [])];
 }
 
+/**
+ * 목적별 "구도"(composition) 허용 범위 — S08이 하드코딩 없이 여기서만 읽는다.
+ * ⚠️ Phase 1 잠정치: 여권 예시("얼굴 중심 구도만 사용할 수 있어요")만 스펙에
+ * 명시돼 있고 나머지 4개 목적은 editLevel에 비례해 추정한 값이다. 실제
+ * Design Handoff(06-data-and-api.md) 확인 시 조정 필요 — 화면 코드는 이 값만
+ * 바라보므로 여기 숫자만 바꾸면 전체에 반영된다.
+ */
+const COMPOSITION_OPTION_GROUP: Record<PurposeId, OptionGroupPolicy> = {
+  passport: { key: 'composition', allowed: ['faceCenter'], lockReason: '여권 규격에서는 얼굴 중심 구도만 사용할 수 있어요.' },
+  idPhoto: { key: 'composition', allowed: ['faceCenter', 'faceShoulders'], lockReason: '증명사진 규격에서는 얼굴 중심·어깨까지 구도만 사용할 수 있어요.' },
+  residentId: { key: 'composition', allowed: ['faceCenter', 'faceShoulders'], lockReason: '주민등록증 규격에서는 얼굴 중심·어깨까지 구도만 사용할 수 있어요.' },
+  driverLicense: { key: 'composition', allowed: ['faceCenter', 'faceShoulders', 'chestUp'], lockReason: '운전면허증 규격에서는 상반신 구도를 사용할 수 없어요.' },
+  job: { key: 'composition', allowed: ['faceCenter', 'faceShoulders', 'chestUp', 'upperBody'] },
+};
+
 /** LEVEL 0 (passport) locks everything down hard; higher levels progressively relax hair options. */
 export const POLICIES: Record<PurposeId, Policy> = {
   idPhoto: {
@@ -77,6 +92,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+    optionGroups: [COMPOSITION_OPTION_GROUP.idPhoto],
   },
   passport: {
     policyId: 'policy_passport_v1',
@@ -87,6 +103,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: ['flyaway'], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+    optionGroups: [COMPOSITION_OPTION_GROUP.passport],
   },
   residentId: {
     policyId: 'policy_residentId_v1',
@@ -97,6 +114,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+    optionGroups: [COMPOSITION_OPTION_GROUP.residentId],
   },
   driverLicense: {
     policyId: 'policy_driverLicense_v1',
@@ -107,6 +125,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+    optionGroups: [COMPOSITION_OPTION_GROUP.driverLicense],
   },
   job: {
     policyId: 'policy_job_v1',
@@ -117,6 +136,7 @@ export const POLICIES: Record<PurposeId, Policy> = {
     sampleImageUrl: null,
     guideImageUrls: [],
     lockedOptions: { hair: [], face: ['faceShape', 'skinSmoothing'], expression: ['smile'] },
+    optionGroups: [COMPOSITION_OPTION_GROUP.job],
   },
 };
 
@@ -190,7 +210,7 @@ export const POLICY_DETAILS: Record<PurposeId, { subtitle: string; rows: { label
 
 export const POLICY_AI_DOES_NOT = ['얼굴 골격·이목구비 위치 변경', '안경 착용 여부 변경', '나이·성별로 보이는 특징 변경'];
 
-/** 07-03/07-04 — how many candidate photos a single generation attempt produces. */
+/** @deprecated "1/4/8장" 개념 자체가 PhotoFlow 최종 스펙에서 폐기됨 — PRODUCTS_V2로 대체 예정(Phase 3). */
 export const GENERATION_PACKAGES: {
   count: 1 | 4 | 8;
   price: number;
@@ -232,9 +252,14 @@ export const FRAMING_OPTIONS: {
   { id: 'custom', title: 'Custom Framing', subtitle: '직접 조정 · 점선 = 편집 가능', occupancyLabel: '', topPct: 0.09, sidePct: 0.08, faceScale: 0.82, dashed: true },
 ];
 
-/** Purposes whose policy locks the recommended framing (RULE: 규격 이탈 방지). */
+/**
+ * @deprecated 목적별 하드코딩 Set — `POLICIES[x].optionGroups`(위 COMPOSITION_OPTION_GROUP)로
+ * 대체 예정(Phase 2). `PhotoAdjustSheet`가 05-02 전용으로 트리밍되면서 이 Set과
+ * 함께 제거된다. Purposes whose policy locks the recommended framing (RULE: 규격 이탈 방지).
+ */
 export const FRAMING_LOCKED_PURPOSES = new Set(['idPhoto', 'passport', 'residentId', 'driverLicense']);
 
+/** @deprecated Phase 3에서 PRODUCTS_V2로 완전히 교체 예정 — 지금은 S12_Payment.tsx가 그대로 사용 중이라 남겨둠. */
 export const PRODUCTS = [
   {
     id: 'basic',
@@ -248,6 +273,20 @@ export const PRODUCTS = [
     description: '스타일 3종 + 인쇄용 분할 파일',
     price: 5900,
   },
+];
+
+/**
+ * 5개 상품 등급 (PhotoFlow 최종 스펙 §1) — "1장/4장/8장" 개념 완전 폐기.
+ * "목적/규격 수"(specCount)와 "무료 재생성 횟수"(freeRegenCount)는 서로 다른
+ * 축의 데이터임을 타입 레벨에서도 분리해 유지한다. Phase 3에서 S09/S12가
+ * 이 배열로 옮겨가면 위 `PRODUCTS`와 `GENERATION_PACKAGES`는 제거한다.
+ */
+export const PRODUCTS_V2: Product[] = [
+  { id: 'basic', name: '베이직', price: 2900, specCount: 1, retouchLevel: 'basic', freeRegenCount: 1, hiResIncluded: true, printSets: 0, addonRegenPrice: 500, addonPrintPrice: 7000, shippingFee: 3000, retentionDays: 30 },
+  { id: 'standard', name: '스탠다드', price: 5900, specCount: 1, retouchLevel: 'basic', freeRegenCount: 2, hiResIncluded: true, printSets: 1, addonRegenPrice: 500, addonPrintPrice: 7000, shippingFee: 3000, retentionDays: 60 },
+  { id: 'premium', name: '프리미엄', price: 9900, specCount: 2, retouchLevel: 'premium', freeRegenCount: 3, hiResIncluded: true, printSets: 2, addonRegenPrice: 500, addonPrintPrice: 7000, shippingFee: 3000, retentionDays: 90 },
+  { id: 'allInOne', name: '올인원', price: 14900, specCount: 'all', retouchLevel: 'premium', freeRegenCount: 4, hiResIncluded: true, printSets: 3, addonRegenPrice: 500, addonPrintPrice: 7000, shippingFee: 3000, retentionDays: 180 },
+  { id: 'max', name: '맥스', price: 23000, specCount: 'all', retouchLevel: 'premium', freeRegenCount: 5, hiResIncluded: true, printSets: 3, addonRegenPrice: 'free', addonPrintPrice: 4500, shippingFee: 'free', retentionDays: 365 },
 ];
 
 /** 목차 13 — 내 사진. Past generation orders; "구매 완료" carries a real product, "미결제" ones are watermarked and self-expire. */
