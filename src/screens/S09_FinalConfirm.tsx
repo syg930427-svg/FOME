@@ -1,19 +1,22 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { createGeneration, GENERATION_PACKAGES, MOCK_CREDIT_BALANCE, payForGeneration, PURPOSES } from '../api';
+import { createGeneration, PRODUCTS_V2, PURPOSES } from '../api';
+import { CompositionId, RetouchLevel } from '../api/types';
 import {
-  GenerationConfirmSheet,
-  GenerationPackagePicker,
   InfoBanner,
   PhotoPlaceholder,
   PolicyDetailModal,
   PrimaryButton,
+  ProductCompareModal,
+  ProductPicker,
   ScreenHeader,
   SecondaryButton,
   SpecList,
+  TextButton,
 } from '../components';
+import { formatRetouchLevel } from '../components/ProductPicker';
 import { RootStackParamList } from '../navigation/types';
 import { Options, useSession } from '../state/session';
 import { colors, spacing } from '../theme/tokens';
@@ -30,7 +33,23 @@ const BACKGROUND_LABEL: Record<Options['background'], string> = {
   lightGray: '밝은 회색',
   original: '원본 유지',
 };
+const COMPOSITION_LABEL: Record<CompositionId, string> = {
+  faceCenter: '얼굴 중심',
+  faceShoulders: '어깨까지',
+  chestUp: '가슴 위',
+  upperBody: '상반신',
+};
+const RETOUCH_LABEL: Record<RetouchLevel, string> = { basic: '기본', premium: '고급' };
 
+/**
+ * S09(07-01) — 상품 선택 + 최종 설정. PhotoFlow 최종 스펙: 이 화면은 결제
+ * 화면이 아니다 — [미리보기 만들기]는 Preview Credit만 소모하고 결제는
+ * 발생하지 않는다("지금은 결제되지 않아요"). 1/4/8장 개념(GenerationPackagePicker/
+ * GenerationConfirmSheet/payForGeneration)은 여기서 완전히 제거됐다 — 단
+ * `session.generationCount`/`GENERATION_PACKAGES` 자체는 S10/S12가 아직
+ * 참조하고 있어(이번 Phase 대상 아님) 삭제하지 않고, 여기선 결과 1장짜리
+ * Preview라는 의미로 1을 고정 전달한다.
+ */
 export default function S09_FinalConfirm({ navigation }: Props) {
   const purposeId = useSession((s) => s.purposeId);
   const editLevel = useSession((s) => s.editLevel);
@@ -39,34 +58,48 @@ export default function S09_FinalConfirm({ navigation }: Props) {
   const photoId = useSession((s) => s.photoId);
   const policyId = useSession((s) => s.policyId);
   const options = useSession((s) => s.options);
-  const generationCount = useSession((s) => s.generationCount);
+  const setOption = useSession((s) => s.setOption);
   const setGenerationCount = useSession((s) => s.setGenerationCount);
   const setGeneration = useSession((s) => s.setGeneration);
+  const productId = useSession((s) => s.productId);
+  const setProductId = useSession((s) => s.setProductId);
+  const previewCreditRemaining = useSession((s) => s.previewCreditRemaining);
+  const consumePreviewCredit = useSession((s) => s.consumePreviewCredit);
   const purpose = PURPOSES.find((p) => p.id === purposeId);
   const purposeShort = purpose?.title.replace(' 사진', '') ?? '증명사진';
-  const selectedPackage = GENERATION_PACKAGES.find((p) => p.count === generationCount) ?? GENERATION_PACKAGES[1];
-  const payableAmount = Math.max(0, selectedPackage.price - MOCK_CREDIT_BALANCE);
 
   const [policyModalVisible, setPolicyModalVisible] = useState(false);
-  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [compareVisible, setCompareVisible] = useState(false);
   // RULE-07: generation fires exactly once, from this screen only. The flag
   // guards against a double tap racing two /v1/generations calls.
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleConfirm() {
-    if (submitting || !photoId || !policyId) return;
+  // 첫 진입 시 상품 미선택 상태면 베이직을 기본 선택으로 명시(사용자가 항상 뭔가 고른 상태로 시작).
+  useEffect(() => {
+    if (!productId) setProductId('basic');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectedProduct = PRODUCTS_V2.find((p) => p.id === productId) ?? PRODUCTS_V2[0];
+  // 상품이 지원하는 것보다 높은 보정을 골랐는지 검증 — S08이 아니라 여기서, 상품을 아는 시점에만 확인한다.
+  const retouchIncompatible = options.retouch === 'premium' && selectedProduct.retouchLevel === 'basic';
+  const canMakePreview = !retouchIncompatible && previewCreditRemaining > 0;
+
+  async function handleMakePreview() {
+    if (submitting || !photoId || !policyId || !canMakePreview) return;
     setSubmitting(true);
     try {
-      const order = await payForGeneration(generationCount);
+      setGenerationCount(1); // Preview = 결과 1장. S10/S12가 아직 쓰는 필드라 값만 맞춰 넘겨준다.
       const { generationId, etaSeconds } = await createGeneration(
         photoId,
         policyId,
         { hair: options.hair, expression: options.expression, background: options.background },
-        generationCount
+        1
       );
+      consumePreviewCredit();
       setGeneration({ id: generationId, status: 'queued', progress: 0, etaSeconds });
-      setConfirmVisible(false);
-      navigation.navigate('GenerationStarted', { amount: order.amount });
+      // amount: 0 — 이 시점엔 결제가 없으므로 GenerationStarted의 "결제 완료" 토스트는 뜨지 않는다.
+      navigation.navigate('GenerationStarted', { amount: 0 });
     } finally {
       setSubmitting(false);
     }
@@ -96,10 +129,12 @@ export default function S09_FinalConfirm({ navigation }: Props) {
           boxed
           rows={[
             { label: '목적', value: purposeShort },
+            { label: '구도', value: COMPOSITION_LABEL[options.composition] },
             { label: '헤어', value: HAIR_LABEL[options.hair] },
             { label: '얼굴', value: 'Identity 유지' },
             { label: '표정', value: '자연스러운 정면' },
             { label: '배경', value: BACKGROUND_LABEL[options.background] },
+            { label: '보정', value: RETOUCH_LABEL[options.retouch] },
           ]}
         />
 
@@ -115,14 +150,40 @@ export default function S09_FinalConfirm({ navigation }: Props) {
           </Text>
         </View>
 
-        <GenerationPackagePicker selected={generationCount} onSelect={setGenerationCount} />
+        <ProductPicker
+          products={PRODUCTS_V2}
+          selectedId={productId}
+          onSelect={setProductId}
+          onCompare={() => setCompareVisible(true)}
+        />
 
-        <InfoBanner tone="warning" text="지금 생성하면 선택한 장수만큼 만들어져요. 실패 시 금액은 차감되지 않아요." />
+        {retouchIncompatible && (
+          <View style={styles.warnBlock}>
+            <InfoBanner
+              tone="warning"
+              text={`${selectedProduct.name} 상품은 '${formatRetouchLevel('premium')}' 보정을 지원하지 않아요. 기본 보정으로 바꾸거나 더 높은 등급의 상품을 선택해 주세요.`}
+            />
+            <TextButton label="기본 보정으로 변경" onPress={() => setOption('retouch', 'basic')} />
+          </View>
+        )}
+
+        <InfoBanner tone="info" text="지금은 결제되지 않아요. 미리보기 확인 후 구매를 결정할 수 있어요." />
       </ScrollView>
 
       <View style={styles.ctaArea}>
-        <SecondaryButton label="수정하기" compact style={styles.editButton} onPress={() => navigation.navigate('S08_Options')} />
-        <PrimaryButton label="이 설정으로 생성" style={styles.generateButton} onPress={() => setConfirmVisible(true)} />
+        <View style={styles.ctaButtonsRow}>
+          <SecondaryButton label="수정하기" compact style={styles.editButton} onPress={() => navigation.navigate('S08_Options')} />
+          <PrimaryButton
+            label="미리보기 만들기"
+            style={styles.generateButton}
+            loading={submitting}
+            disabled={!canMakePreview}
+            onPress={handleMakePreview}
+          />
+        </View>
+        <Text style={styles.creditCaption}>
+          {previewCreditRemaining > 0 ? `미리보기 ${previewCreditRemaining}회 남음` : '미리보기 크레딧을 모두 사용했어요'}
+        </Text>
       </View>
 
       <PolicyDetailModal
@@ -132,15 +193,15 @@ export default function S09_FinalConfirm({ navigation }: Props) {
         purposeShort={purposeShort}
       />
 
-      <GenerationConfirmSheet
-        visible={confirmVisible}
-        onDismiss={() => (submitting ? undefined : setConfirmVisible(false))}
-        onConfirm={handleConfirm}
-        submitting={submitting}
-        count={generationCount}
-        amount={payableAmount}
-        purposeSpecLine={`${purposeShort} · 35×45mm`}
-        optionsSpecLine={`${HAIR_LABEL[options.hair]} · 배경 ${BACKGROUND_LABEL[options.background]}`}
+      <ProductCompareModal
+        visible={compareVisible}
+        onClose={() => setCompareVisible(false)}
+        products={PRODUCTS_V2}
+        selectedId={productId}
+        onSelect={(id) => {
+          setProductId(id);
+          setCompareVisible(false);
+        }}
       />
     </SafeAreaView>
   );
@@ -161,7 +222,10 @@ const styles = StyleSheet.create({
   policyTitle: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   policyLink: { fontSize: 12.5, fontWeight: '600', color: colors.primary },
   policyText: { fontSize: 13, lineHeight: 13 * 1.6, color: colors.textSecondaryAlt },
-  ctaArea: { flexDirection: 'row', gap: 10, paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28 },
+  warnBlock: { gap: 4 },
+  ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 8 },
+  ctaButtonsRow: { flexDirection: 'row', gap: 10 },
   editButton: { width: 112 },
   generateButton: { flex: 1 },
+  creditCaption: { textAlign: 'center', fontSize: 12, color: colors.textDisabled },
 });
