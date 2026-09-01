@@ -1,6 +1,5 @@
-import type { FramingId } from '../state/session';
 import type { LanguageCode, RetentionPolicyId } from '../state/settings';
-import { OptionGroupPolicy, Policy, Product, PurposeId } from './types';
+import { CompositionId, OptionGroupPolicy, Policy, Product, PurposeId } from './types';
 
 export const PURPOSES: {
   id: PurposeId;
@@ -232,32 +231,26 @@ export const MOCK_CREDIT_BALANCE = 2000;
  * the blue frame outline over the placeholder figure; `faceScale` scales the
  * figure so tighter framings read as "closer" without a real image pipeline.
  */
-export const FRAMING_OPTIONS: {
-  id: FramingId;
+/**
+ * S08 "구도" 옵션 4종 (PhotoFlow 최종 스펙 §6) — AI 생성 정책이므로 여기 있는
+ * 4개가 유일한 선택지다. 05-02(PhotoAdjustSheet)는 더 이상 이 목록을 참조하지
+ * 않는다(구 FRAMING_OPTIONS 8종·FRAMING_LOCKED_PURPOSES는 Phase 2에서 완전히
+ * 제거됨 — 소비처가 없어 안전하게 삭제, grep으로 확인).
+ * ⚠️ topPct/sidePct/faceScale은 실제 디자인 확정 전 임시 프리뷰 비율.
+ */
+export const COMPOSITION_OPTIONS: {
+  id: CompositionId;
   title: string;
   subtitle: string;
-  occupancyLabel: string;
   topPct: number;
   sidePct: number;
   faceScale: number;
-  dashed?: boolean;
 }[] = [
-  { id: 'original', title: 'Original Framing', subtitle: '원본 그대로', occupancyLabel: '얼굴 점유 32%', topPct: 0.04, sidePct: 0.04, faceScale: 0.8 },
-  { id: 'faceNeck', title: 'Face & Neck', subtitle: '목선까지', occupancyLabel: '얼굴 점유 72%', topPct: 0.05, sidePct: 0.12, faceScale: 1.05 },
-  { id: 'faceShoulders', title: 'Face & Shoulders', subtitle: '어깨선까지', occupancyLabel: '얼굴 점유 60%', topPct: 0.07, sidePct: 0.09, faceScale: 0.92 },
-  { id: 'upperChest', title: 'Upper Chest', subtitle: '가슴 상단까지', occupancyLabel: '얼굴 점유 48%', topPct: 0.1, sidePct: 0.08, faceScale: 0.78 },
-  { id: 'midChest', title: 'Mid Chest', subtitle: '가슴 중앙까지', occupancyLabel: '얼굴 점유 40%', topPct: 0.14, sidePct: 0.07, faceScale: 0.68 },
-  { id: 'waistUp', title: 'Waist-Up', subtitle: '허리까지', occupancyLabel: '얼굴 점유 30%', topPct: 0.19, sidePct: 0.05, faceScale: 0.56 },
-  { id: 'fullUpperBody', title: 'Full Upper Body', subtitle: '상체 전체', occupancyLabel: '얼굴 점유 24%', topPct: 0.24, sidePct: 0.03, faceScale: 0.48 },
-  { id: 'custom', title: 'Custom Framing', subtitle: '직접 조정 · 점선 = 편집 가능', occupancyLabel: '', topPct: 0.09, sidePct: 0.08, faceScale: 0.82, dashed: true },
+  { id: 'faceCenter', title: '얼굴 중심', subtitle: '얼굴 위주로 가깝게', topPct: 0.05, sidePct: 0.12, faceScale: 1.05 },
+  { id: 'faceShoulders', title: '어깨까지', subtitle: '얼굴 + 어깨선', topPct: 0.07, sidePct: 0.09, faceScale: 0.92 },
+  { id: 'chestUp', title: '가슴 위', subtitle: '상체 상단까지', topPct: 0.1, sidePct: 0.08, faceScale: 0.78 },
+  { id: 'upperBody', title: '상반신', subtitle: '상체 전체', topPct: 0.24, sidePct: 0.03, faceScale: 0.48 },
 ];
-
-/**
- * @deprecated 목적별 하드코딩 Set — `POLICIES[x].optionGroups`(위 COMPOSITION_OPTION_GROUP)로
- * 대체 예정(Phase 2). `PhotoAdjustSheet`가 05-02 전용으로 트리밍되면서 이 Set과
- * 함께 제거된다. Purposes whose policy locks the recommended framing (RULE: 규격 이탈 방지).
- */
-export const FRAMING_LOCKED_PURPOSES = new Set(['idPhoto', 'passport', 'residentId', 'driverLicense']);
 
 /** @deprecated Phase 3에서 PRODUCTS_V2로 완전히 교체 예정 — 지금은 S12_Payment.tsx가 그대로 사용 중이라 남겨둠. */
 export const PRODUCTS = [

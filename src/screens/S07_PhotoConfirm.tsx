@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PURPOSES } from '../api';
-import { FRAMING_OPTIONS } from '../api/mockData';
 import { PhotoAdjustSheet } from '../components/PhotoAdjustSheet';
 import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton, TextButton } from '../components';
 import { PhotoZoomModal } from '../components/PhotoZoomModal';
@@ -25,19 +24,18 @@ const LEVEL_PERMISSION: Record<number, string> = {
 /**
  * 05-02~05-15 통합본 — 옛 S07_PhotoConfirm(사진 확인) → PhotoCrop(범위) →
  * FacePosition(위치) → FramingSelect(상체 범위) → PhotoConfirmFinal(확정)로
- * 이어지던 5단계 체인을 화면 1개 + PhotoAdjustSheet(범위·위치 조정 Bottom
- * Sheet) 1개로 통합. 촬영(source='camera')·기존 사진(source='gallery') 두
- * 진입 경로가 이 화면 하나를 공유하며 헤더 타이틀만 갈라진다. CTA는 바로
- * S08_Options로 이동 — 중간 확정 단계 없이 session.framing이 즉시 반영된다.
+ * 이어지던 5단계 체인을 화면 1개 + PhotoAdjustSheet(05-02, 기술 조정 전용
+ * Bottom Sheet) 1개로 통합. 촬영(source='camera')·기존 사진(source='gallery')
+ * 두 진입 경로가 이 화면 하나를 공유하며 헤더 타이틀만 갈라진다. CTA는 바로
+ * S08_Options로 이동 — 중간 확정 단계 없이 session.sourceCrop이 즉시 반영된다.
+ * (Phase 2) AI "구도" 선택은 여기 없다 — S08의 options.composition 전담.
  */
 export default function S07_PhotoConfirm({ navigation }: Props) {
   const purposeId = useSession((s) => s.purposeId);
   const editLevel = useSession((s) => s.editLevel);
   const source = useSession((s) => s.source);
   const photo = useSession((s) => s.photo);
-  const framing = useSession((s) => s.framing);
   const purpose = PURPOSES.find((p) => p.id === purposeId);
-  const selectedFraming = FRAMING_OPTIONS.find((o) => o.id === framing.framingId) ?? FRAMING_OPTIONS[2];
   const [zoomVisible, setZoomVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
   const [adjustVisible, setAdjustVisible] = useState(false);
@@ -46,7 +44,7 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
   const screenTitle = source === 'camera' ? '촬영 완료' : source === 'gallery' ? '사진 선택 완료' : '사진 확인';
 
   useEffect(() => {
-    showToast('사진과 범위를 저장했어요');
+    showToast('사진을 저장했어요');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -76,8 +74,8 @@ export default function S07_PhotoConfirm({ navigation }: Props) {
             <Text style={styles.summaryValue}>{LEVEL_PERMISSION[editLevel]}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>범위</Text>
-            <Text style={styles.summaryValue}>{selectedFraming.title}</Text>
+            <Text style={styles.summaryLabel}>사진 조정</Text>
+            <Text style={styles.summaryValue}>회전·위치·크기</Text>
             <Text style={styles.summaryAction} onPress={() => setAdjustVisible(true)}>
               변경
             </Text>
