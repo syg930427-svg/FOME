@@ -28,8 +28,11 @@ type Phase = 'progress' | 'done' | 'failed';
  * Hardware/gesture back is still guarded — leaving requires the confirm modal.
  */
 export default function S10_Generating({ navigation, route }: Props) {
-  const generation = useSession((s) => s.generation);
-  const setGeneration = useSession((s) => s.setGeneration);
+  const activeGenerationId = useSession((s) => s.activeGenerationId);
+  const setActiveGenerationId = useSession((s) => s.setActiveGenerationId);
+  const generation = useSession((s) => s.getActiveGeneration());
+  const addGeneration = useSession((s) => s.addGeneration);
+  const updateActiveGeneration = useSession((s) => s.updateActiveGeneration);
   const generationCount = useSession((s) => s.generationCount);
   const setGenerationCount = useSession((s) => s.setGenerationCount);
   const photoId = useSession((s) => s.photoId);
@@ -45,15 +48,19 @@ export default function S10_Generating({ navigation, route }: Props) {
   const markNotifPromptShown = useAppEntry((s) => s.markNotifPromptShown);
   const [notifSheetVisible, setNotifSheetVisible] = useState(false);
 
-  // route.params.generationId는 지금은 session.generation과 항상 같은 값이어야 한다(같은 화면
-  // 안에서 방금 만든 generation을 보는 흐름이라). 나중에 푸시/딥링크로 다른 generationId가
-  // 들어오는 경로가 생기면, 여기서 그 id로 실제 조회하도록 확장하면 된다 — route 모양은
-  // 이미 그 확장을 받아들일 수 있게 만들어 뒀다.
+  // 딥링크/푸시로 이 화면에 진입했을 때를 대비한 진입점 — route가 가리키는
+  // generationId가 지금 active인 것과 다르면 그쪽으로 active를 옮긴다. 지금
+  // 이 앱의 모든 진입 경로(S09→GenerationStarted→S10, 이 화면 자신의 재시도)는
+  // 이미 같은 id를 넘기므로 정상 흐름에선 이 분기가 실행되지 않는다 — 나중에
+  // 실제 푸시 알림 딥링크가 다른 generationId를 들고 들어오는 경로가 생기면
+  // 여기서 그대로 받아준다(단, 그 generation이 이 세션의 이력에 실제로 있을
+  // 때만 — 영속화 전이라 앱을 껐다 켜면 이력 자체가 사라진다는 한계는 있음).
   useEffect(() => {
-    if (__DEV__ && generation && route.params.generationId !== generation.id) {
-      console.warn('S10_Generating: route generationId가 session.generation.id와 다릅니다.', route.params.generationId, generation.id);
+    if (route.params.generationId !== activeGenerationId) {
+      setActiveGenerationId(route.params.generationId);
     }
-  }, [route.params.generationId, generation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params.generationId]);
 
   // 01-07: fires once, right as generation starts. Declining never blocks generation.
   useEffect(() => {
@@ -98,14 +105,15 @@ export default function S10_Generating({ navigation, route }: Props) {
   }, [navigation]);
 
   useEffect(() => {
-    if (!generation || phase !== 'progress') return;
+    if (!activeGenerationId || phase !== 'progress') return;
     let cancelled = false;
 
     const poll = async () => {
       try {
-        const result = await getGeneration(generation.id, generationCount);
+        const result = await getGeneration(activeGenerationId, generationCount);
         if (cancelled) return;
-        setGeneration({ ...generation, status: result.status, steps: result.steps, previewUrl: result.previewUrl ?? undefined, results: result.results ?? undefined });
+        // active 하나만 patch — 다른 이력(구 Generation 1/2...)은 절대 건드리지 않는다.
+        updateActiveGeneration({ status: result.status, steps: result.steps, previewUrl: result.previewUrl ?? undefined, results: result.results ?? undefined });
         if (result.status === 'done') {
           setPhase('done');
         } else if (result.status === 'failed') {
@@ -125,7 +133,7 @@ export default function S10_Generating({ navigation, route }: Props) {
     };
     // Only (re)poll while actively progressing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generation?.id, phase]);
+  }, [activeGenerationId, phase]);
 
   function handleGoBackground() {
     allowLeaveRef.current = true;
@@ -135,11 +143,13 @@ export default function S10_Generating({ navigation, route }: Props) {
   function handleViewResult() {
     setResultIndex(0); // Preview는 항상 결과 1장 — 고를 게 없다.
     allowLeaveRef.current = true;
-    navigation.replace('S11_Preview');
+    navigation.replace('S11_Preview', activeGenerationId ? { generationId: activeGenerationId } : {});
   }
 
-  // 실패한 시도를 다시 시도할 뿐 — Preview Credit은 이미 S09에서 이 시도 한 번에 대해서만
-  // 소모됐고, 여기서 다시 소모하지 않는다(PhotoFlow 최종 스펙 §5 사전 확인 반영).
+  // 실패한 시도를 다시 시도 — 새 generationId를 발급해 이력에 "추가"할 뿐,
+  // 실패한 기존 Generation은 지우거나 덮어쓰지 않고 이력에 그대로 남는다
+  // (addGeneration은 push이지 교체가 아니다). Preview Credit은 이미 S09에서
+  // 이 시도 한 번에 대해서만 소모됐고, 여기서 다시 소모하지 않는다.
   async function handleRetry() {
     if (retrying || !photoId || !policyId) {
       handleGoBackground();
@@ -154,7 +164,7 @@ export default function S10_Generating({ navigation, route }: Props) {
         { hair: options.hair, expression: options.expression, background: options.background },
         1
       );
-      setGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds });
+      addGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds, isPaid: false });
       setPhase('progress');
     } finally {
       setRetrying(false);

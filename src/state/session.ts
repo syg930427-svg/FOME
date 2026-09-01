@@ -20,15 +20,25 @@ export type Options = {
   retouch: RetouchLevel;
 };
 
-/** Phase 4 — `progress: number`(가짜 %) 제거, `steps`(서버가 실제 단계를 줄 때만 채움)로 대체. */
-export type GenerationState = {
+/**
+ * Phase 5 — Generation은 결과물의 "이력"이다. 재생성할 때마다 새
+ * generationId가 발급되고 기존 항목은 절대 덮어쓰지 않는다(PhotoFlow 최종
+ * 스펙: Generation 1/2/3처럼 나열 가능해야 함). 결제는 "새 Generation을
+ * 만드는 것"이 아니라 "지금 보고 있는 Generation의 isPaid를 뒤집는 것"이라,
+ * `isPaid`는 이 레코드 자체에 들어있다(session.paid처럼 별도 top-level
+ * 플래그가 아님). api/types.ts의 `Generation`(mock API 응답 모양,
+ * `generationId` 필드명)과 이름이 겹치지 않도록 `GenerationRecord`로 명명.
+ */
+export type GenerationRecord = {
   id: string;
   status: GenerationStatus;
   steps: GenerationStep[] | null;
   previewUrl?: string;
   results?: string[];
+  /** 결제 성공 시 이 필드만 true로 전환된다 — 새 레코드를 만들지 않는다. */
+  isPaid: boolean;
   etaSeconds?: number;
-} | null;
+};
 
 const defaultSourceCrop: SourceCrop = {
   aspect: 'passport',
@@ -47,18 +57,29 @@ type SessionState = {
   photo: Photo | null;
   photoId: string | null;
   options: Options;
-  generation: GenerationState;
+
+  /** Generation 전체 이력 — 재생성해도 이전 항목은 그대로 남는다. */
+  generations: GenerationRecord[];
+  /** 지금 보고 있는(또는 마지막으로 만든) Generation의 id. null이면 아직 하나도 없음. */
+  activeGenerationId: string | null;
+
   /** 07-03/07-04 — how many candidate photos the next generation attempt requests. */
   generationCount: 1 | 4 | 8;
   /**
    * @deprecated Phase 3에서 폐기 예정 — "1회 무료 재시도" 하나로 preview/paid를
    * 구분 없이 다루던 옛 개념. `previewCreditRemaining`/`paidRegenCreditRemaining`으로
    * 대체된다(둘은 완전히 별도 카운터 — 섞으면 안 됨, PhotoFlow 스펙 §4).
-   * `S10_Generating.tsx`가 아직 이 필드를 쓰고 있어 Phase 3까지는 남겨둔다.
+   * `DeleteAccount.tsx`가 아직 이 필드를 읽고 있어 남겨둔다.
    */
   freeRetryUsed: boolean;
   /** 08-03 — which of the batch results the user picked to carry into S11/S12. */
   resultIndex: number;
+  /**
+   * @deprecated Generation별 `isPaid`로 대체됐다(위 GenerationRecord 참고).
+   * `S12_Payment.tsx`가 Phase 6 전까지는 아직 이 top-level 플래그만 세팅하므로
+   * 지우지 않는다 — 즉 지금은 S12에서 결제해도 어떤 GenerationRecord의
+   * isPaid도 실제로 true가 되지 않는다(Phase 6에서 연결 예정, 남은 리스크로 보고).
+   */
   paid: boolean;
   orderId: string | null;
 
@@ -75,7 +96,17 @@ type SessionState = {
   setPhoto: (photo: Photo, source: 'camera' | 'gallery') => void;
   setPhotoId: (photoId: string) => void;
   setOption: <K extends keyof Pick<Options, 'hair' | 'background' | 'composition' | 'retouch'>>(key: K, value: Options[K]) => void;
-  setGeneration: (generation: GenerationState) => void;
+
+  /** 새 Generation을 이력에 추가하고 그것을 active로 만든다 — 기존 항목은 절대 건드리지 않는다. */
+  addGeneration: (generation: GenerationRecord) => void;
+  /** 지금 active인 Generation 하나만 부분 갱신한다(S10 폴링용) — 다른 이력엔 영향 없음. */
+  updateActiveGeneration: (partial: Partial<GenerationRecord>) => void;
+  setActiveGenerationId: (id: string) => void;
+  /** 결제 성공 시 특정 Generation의 isPaid만 true로 전환 — 새 레코드를 만들지 않는다. Phase 6에서 S12가 호출 예정(지금은 호출부 없음). */
+  markGenerationPaid: (id: string) => void;
+  /** 지금 active인 Generation을 읽는 편의 getter. 컴포넌트에서 `useSession((s) => s.getActiveGeneration())`처럼 셀렉터 안에서 호출하면 반응형으로 동작한다(useMyPhotos.getOrder와 동일 패턴). */
+  getActiveGeneration: () => GenerationRecord | null;
+
   setGenerationCount: (count: 1 | 4 | 8) => void;
   markFreeRetryUsed: () => void;
   setResultIndex: (index: number) => void;
@@ -104,7 +135,7 @@ const defaultOptions: Options = {
  * README. One session per generation attempt; changing the purpose resets
  * everything downstream of it, matching the README's stated rule.
  */
-export const useSession = create<SessionState>((set) => ({
+export const useSession = create<SessionState>((set, get) => ({
   purposeId: null,
   policyId: null,
   editLevel: 0,
@@ -112,7 +143,8 @@ export const useSession = create<SessionState>((set) => ({
   photo: null,
   photoId: null,
   options: defaultOptions,
-  generation: null,
+  generations: [],
+  activeGenerationId: null,
   generationCount: 4,
   freeRetryUsed: false,
   resultIndex: 0,
@@ -133,7 +165,8 @@ export const useSession = create<SessionState>((set) => ({
       photo: null,
       photoId: null,
       options: defaultOptions,
-      generation: null,
+      generations: [],
+      activeGenerationId: null,
       generationCount: 4,
       freeRetryUsed: false,
       resultIndex: 0,
@@ -151,7 +184,24 @@ export const useSession = create<SessionState>((set) => ({
 
   setOption: (key, value) => set((state) => ({ options: { ...state.options, [key]: value } })),
 
-  setGeneration: (generation) => set({ generation }),
+  addGeneration: (generation) =>
+    set((state) => ({ generations: [...state.generations, generation], activeGenerationId: generation.id })),
+
+  updateActiveGeneration: (partial) =>
+    set((state) => ({
+      generations: state.generations.map((g) => (g.id === state.activeGenerationId ? { ...g, ...partial } : g)),
+    })),
+
+  setActiveGenerationId: (activeGenerationId) => set({ activeGenerationId }),
+
+  markGenerationPaid: (id) =>
+    set((state) => ({ generations: state.generations.map((g) => (g.id === id ? { ...g, isPaid: true } : g)) })),
+
+  getActiveGeneration: () => {
+    const state = get();
+    return state.generations.find((g) => g.id === state.activeGenerationId) ?? null;
+  },
+
   setGenerationCount: (generationCount) => set({ generationCount }),
   markFreeRetryUsed: () => set({ freeRetryUsed: true }),
   setResultIndex: (resultIndex) => set({ resultIndex }),
@@ -179,7 +229,8 @@ export const useSession = create<SessionState>((set) => ({
       photo: null,
       photoId: null,
       options: defaultOptions,
-      generation: null,
+      generations: [],
+      activeGenerationId: null,
       generationCount: 4,
       freeRetryUsed: false,
       resultIndex: 0,

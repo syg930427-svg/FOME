@@ -33,7 +33,11 @@ export type RootStackParamList = {
   // generationId를 필수로 받는다 — 나중에 푸시 알림/딥링크로 특정 generation을
   // 곧장 열 수 있도록 route 자체를 처음부터 이 모양으로 설계해 둔다(Phase 4).
   S10_Generating: { generationId: string };
-  S11_Preview: undefined;
+  // Phase 5: 선택적 — 정상 흐름(S10 "결과 확인하기")은 항상 넘겨주지만, S11은
+  // 이 param 없이도 session.activeGenerationId로 동작해야 한다(PhotoInputMethod의
+  // { preselect? } 와 동일한 선택적 파라미터 관례). 나중에 My Photos에서 과거
+  // Generation을 다시 보여줄 때 이 param으로 특정 결과를 지정할 수 있다.
+  S11_Preview: { generationId?: string };
   S12_Payment: undefined;
 
   // 목차 13 — 내 사진. Plain screens in the same stack as everything above (no

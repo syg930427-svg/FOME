@@ -60,7 +60,7 @@ export default function S09_FinalConfirm({ navigation }: Props) {
   const options = useSession((s) => s.options);
   const setOption = useSession((s) => s.setOption);
   const setGenerationCount = useSession((s) => s.setGenerationCount);
-  const setGeneration = useSession((s) => s.setGeneration);
+  const addGeneration = useSession((s) => s.addGeneration);
   const productId = useSession((s) => s.productId);
   const setProductId = useSession((s) => s.setProductId);
   const previewCreditRemaining = useSession((s) => s.previewCreditRemaining);
@@ -99,7 +99,7 @@ export default function S09_FinalConfirm({ navigation }: Props) {
         1
       );
       consumePreviewCredit();
-      setGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds });
+      addGeneration({ id: generationId, status: 'queued', steps: null, etaSeconds, isPaid: false });
       navigation.navigate('GenerationStarted', { generationId });
     } catch {
       Alert.alert('생성을 시작하지 못했어요', '잠시 후 다시 시도해 주세요. Preview Credit은 차감되지 않았어요.');

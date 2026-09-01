@@ -43,7 +43,7 @@ const STATUS_BADGE: Record<string, string> = { purchased: '완성', unpaid: '미
  */
 export default function S01_Purpose({ navigation }: Props) {
   const selectPurpose = useSession((s) => s.selectPurpose);
-  const generation = useSession((s) => s.generation);
+  const generation = useSession((s) => s.getActiveGeneration());
   const orders = useMyPhotos((s) => s.orders);
   const unreadNoticeCount = useNotices((s) => s.notices.filter((n) => !n.read).length);
   // Phase 4 — S10에서 홈으로 나가도 generation은 세션에 그대로 남는다("사라지면
