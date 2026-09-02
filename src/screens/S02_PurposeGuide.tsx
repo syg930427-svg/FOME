@@ -29,14 +29,16 @@ const BAD_REASONS = [
 const BAD_EXAMPLE_IDS = ['tilt', 'hair', 'shadow', 'smile'];
 
 /**
- * 「사진 준비 기준」— S01 목적 선택 직후 한 번만 보여주는 단일 화면. 이상적인
- * 샘플·핵심 체크리스트·목적별 규격/정책은 항상 펼쳐져 있고, "피해야 할 사진
- * 예시"/"촬영 기준"은 기본 접힘(아코디언)으로 눌러야 펼쳐진다. 구
- * S03_IdealSample의 3탭 내용(좋은 예시/피해야 할 예시/촬영 기준)을 전부
- * 흡수했고 그 화면은 삭제됐다 — "자세히 보기"라는 별도 라우트는 없다.
- * S06/S07의 "다시 보기"는 이 화면을 `push`로 재방문한다(뒤로가기 시 원래
- * 있던 화면으로 정상 복귀 — navigation.navigate를 쓰면 스택에 이미 있는 이
- * 화면으로 점프하며 그 사이 화면들이 스택에서 사라지므로 반드시 push).
+ * 「사진 준비 기준」— PhotoInputMethod에서 "지금 촬영하기"를 고른 직후에만
+ * 보여주는 화면이다("기존 사진 사용"은 이 화면을 거치지 않고 S06_Upload로
+ * 바로 간다). 이상적인 샘플·핵심 체크리스트·목적별 규격/정책은 항상 펼쳐져
+ * 있고, "피해야 할 사진 예시"/"촬영 기준"은 기본 접힘(아코디언)으로 눌러야
+ * 펼쳐진다. 구 S03_IdealSample의 3탭 내용(좋은 예시/피해야 할 예시/촬영
+ * 기준)을 전부 흡수했고 그 화면은 삭제됐다 — "자세히 보기"라는 별도 라우트는
+ * 없다. S07의 "사진 준비 기준 다시 보기"는 이 화면을 `push`로 재방문한다
+ * (뒤로가기 시 원래 있던 화면으로 정상 복귀 — navigation.navigate를 쓰면
+ * 스택에 이미 있는 이 화면으로 점프하며 그 사이 화면들이 스택에서 사라지므로
+ * 반드시 push).
  */
 export default function S02_PurposeGuide({ navigation }: Props) {
   const purposeId = useSession((s) => s.purposeId);
@@ -52,7 +54,7 @@ export default function S02_PurposeGuide({ navigation }: Props) {
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScreenHeader title={purpose?.title ?? '목적별 안내'} onBack={navigation.goBack} />
       <View style={styles.progressRow}>
-        <StepProgress total={6} completed={2} label="준비" />
+        <StepProgress total={6} completed={3} label="준비" />
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
@@ -132,7 +134,7 @@ export default function S02_PurposeGuide({ navigation }: Props) {
       </ScrollView>
 
       <View style={styles.ctaArea}>
-        <PrimaryButton label="사진 준비하기" onPress={() => navigation.navigate('PhotoInputMethod', {})} />
+        <PrimaryButton label="촬영 시작" onPress={() => navigation.navigate('S05_Camera')} />
       </View>
     </SafeAreaView>
   );

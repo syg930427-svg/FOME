@@ -72,7 +72,10 @@ export default function S01_Purpose({ navigation }: Props) {
         return;
       }
       selectPurpose(id, policy.policyId, policy.editLevel);
-      navigation.navigate('S02_PurposeGuide');
+      // 목적 선택 직후 곧장 "사진을 어떻게 준비할까요?"로 이동한다 — 촬영/기존
+      // 사진 중 뭘 고르느냐에 따라 준비 안내(S02_PurposeGuide)를 볼지 말지가
+      // 갈린다(촬영일 때만 그 화면을 거침, PhotoInputMethod 참고).
+      navigation.navigate('PhotoInputMethod', {});
     } catch {
       navigation.navigate('ServerError');
     } finally {
