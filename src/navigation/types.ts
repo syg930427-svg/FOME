@@ -9,16 +9,24 @@ export type RootStackParamList = {
   ServerError: undefined;
 
   S01_Purpose: undefined;
-  // 「사진 준비 기준」 단일 화면 — 좋은 예시/핵심 체크리스트/목적별 규격·정책은
-  // 항상 노출, "피해야 할 사진 예시"/"촬영 기준"은 접힘(아코디언)으로 흡수했다
-  // (구 S03_IdealSample 3탭 + 구 S04_ShootingGuide 6항목). S01 다음 딱 한 번만
-  // 보여주는 게 원칙이라 별도 "자세히 보기" route는 없다 — S06/S07의 "다시
-  // 보기"는 이 화면을 `push`로 재방문한다.
+  // 목적/정책(Policy) 전용 「사진 준비 기준」 화면 — 좋은 예시/핵심 체크리스트/
+  // 목적별 규격·정책은 항상 노출, "피해야 할 사진 예시"/"촬영 기준"은 접힘
+  // (아코디언)으로 흡수했다(구 S03_IdealSample 3탭 + 구 S04_ShootingGuide
+  // 6항목). 주 진입 경로에서는 빠졌고(CameraPrep이 촬영 방법 안내를 담당),
+  // S07의 "사진 준비 기준 다시 보기"로만 `push` 재방문한다.
   S02_PurposeGuide: undefined;
   PhotoInputMethod: { preselect?: InputMethod };
+  // Claude Design 핸드오프 "사진 준비 안내 2화면" 중 Camera Preparation —
+  // PhotoInputMethod에서 촬영을 고르고 카메라 권한이 확인된 뒤 이 화면을 거쳐
+  // S05_Camera로 들어간다. 목적/정책 콘텐츠는 여기 섞지 않는다(S02_PurposeGuide
+  // 의 역할과 분리 — CameraPrep.tsx 상단 주석 참고).
+  CameraPrep: undefined;
   CameraPermissionDenied: undefined;
   PhotoPermissionDenied: undefined;
   S05_Camera: undefined;
+  // Claude Design 핸드오프 "사진 준비 안내 2화면" 중 Album Selection Guidance
+  // 화면을 이 라우트에서 그대로 구현한다(화면 자체는 정적 안내, 실제 피커
+  // 호출/권한/오류 처리 로직은 기존 그대로 — S06_Upload.tsx 상단 주석 참고).
   S06_Upload: undefined;
   // 05-02~05-15 통합본. 촬영(S05)·기존 사진(S06) 두 경로가 모두 이 화면으로
   // 모이고, 여기서 바로 S08_Options로 넘어간다 — 옛 PhotoCrop/FacePosition/

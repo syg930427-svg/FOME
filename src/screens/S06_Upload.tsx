@@ -1,28 +1,47 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PURPOSES, uploadPhoto } from '../api';
-import { PhotoPlaceholder, PrimaryButton, ScreenHeader, SecondaryButton } from '../components';
+import { uploadPhoto } from '../api';
+import { PrepExampleBlock, PrepHeader, PrepRuleCard, PrimaryButton, SecondaryButton } from '../components';
 import { PhotoGlyph } from '../components/EntryIcons';
 import { PermissionSheet } from '../components/PermissionSheet';
 import { RootStackParamList } from '../navigation/types';
 import { getPhotosPermission, requestPhotosPermission } from '../permissions';
 import { useSession } from '../state/session';
-import { colors, spacing } from '../theme/tokens';
+import { colors, radius, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'S06_Upload'>;
 
+const RULES = [
+  { index: '01', title: '얼굴 방향', description: '정면에 가깝고, 심하게 기울어지지 않은 사진' },
+  { index: '02', title: '얼굴 크기', description: '얼굴이 사진에서 충분히 크게 나온 사진' },
+  { index: '03', title: '선명도', description: '흔들리거나 흐리지 않고 얼굴이 선명한 사진' },
+  { index: '04', title: '가림 없음', description: '모자·마스크·머리카락에 얼굴이 가려지지 않은 사진' },
+  { index: '05', title: '인물 수', description: '한 사람만 나온 사진을 골라주세요' },
+  { index: '06', title: '밝기', description: '지나치게 어둡지 않고 얼굴이 잘 보이는 사진' },
+];
+
+const TIPS = ['최근에 찍은 사진일수록 좋아요', '여러 명이 나온 사진은 잘라도 사용하기 어려워요', '안경에 반사광이 심한 사진은 피해주세요'];
+
+/** 실루엣 도형 — width/height/top-radius만 다르고 구조는 동일해서 헬퍼로 뺌(CameraPrep과 동일 패턴). */
+function silhouetteStyle(width: number, height: number, topRadius: number, bg: string): ViewStyle {
+  return { width, height, borderTopLeftRadius: topRadius, borderTopRightRadius: topRadius, backgroundColor: bg };
+}
+
+/**
+ * S06 — "사진 선택 기준"(Claude Design 핸드오프 "사진 준비 안내 2화면" 중
+ * Album Selection Guidance). `PhotoInputMethod`에서 "기존 사진 사용"을 고른
+ * 뒤 이 화면을 거쳐 실제 갤러리 피커로 들어간다. 화면 상단(헤더/규칙/예시/팁)
+ * 은 핸드오프 hifi 스펙 그대로 재구현한 정적 안내 UI이고, 실제 사진 선택
+ * 로직(권한 확인 → 피커 오픈 → 업로드 → 오류 처리)은 기존 구현을 전혀 건드리지
+ * 않았다 — 핸드오프 자체가 "화면은 상태 없음, 상위 플로우가 소유"라고 명시함.
+ * 촬영 시작/카메라 진입 요소는 의도적으로 전혀 없다(핸드오프 핵심 제약).
+ */
 export default function S06_Upload({ navigation }: Props) {
   const setPhoto = useSession((s) => s.setPhoto);
   const setPhotoId = useSession((s) => s.setPhotoId);
-  const purposeId = useSession((s) => s.purposeId);
-  const purpose = PURPOSES.find((p) => p.id === purposeId);
-  const purposeShort = purpose?.title.replace(' 사진', '') ?? '증명사진';
-  // "에 사용할"은 목적명 끝음절과 무관하게(받침 유무 상관없이) 조사 없이 항상 자연스러워
-  // idPhoto/passport/residentId/driverLicense/job 5종 전부에서 그대로 맞는다.
-  const pickTitle = `${purposeShort}에 사용할 사진을 골라주세요`;
   const [sheetVisible, setSheetVisible] = useState(false);
   const [loadErrorVisible, setLoadErrorVisible] = useState(false);
   const [pendingAsset, setPendingAsset] = useState<{ uri: string; width: number; height: number } | null>(null);
@@ -70,43 +89,63 @@ export default function S06_Upload({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScreenHeader title="기존 사진 선택" onBack={navigation.goBack} />
+    // outer의 색은 상단 안전영역(노치/상태바 부분) 배경으로만 쓰인다 — 실제
+    // 헤더는 스크롤 콘텐츠의 첫 항목이라 핸드오프 README대로 "스크롤과 함께
+    // 올라가고(고정 아님)" 동작한다. 하단 CTA만 별도 SafeAreaView로 고정.
+    <SafeAreaView style={styles.outer} edges={['top']}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <PrepHeader
+          bg={colors.inverseBg}
+          title="사진 선택 기준"
+          badge="ALBUM"
+          heading={'좋은 사진을\n골라주세요'}
+          subtitle="앨범에 있는 사진 중 아래 조건에 가까운 사진이 좋아요."
+          subtitleColor="rgba(255,255,255,0.82)"
+          onBack={navigation.goBack}
+        />
 
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>{pickTitle}</Text>
-          <Text style={styles.subtitle}>자동 규격 판정은 하지 않아요. 아래 기준으로 직접 고르면 돼요.</Text>
-        </View>
+        <View style={styles.body}>
+          {RULES.map((rule) => (
+            <PrepRuleCard key={rule.index} index={rule.index} title={rule.title} description={rule.description} tone="neutral" />
+          ))}
 
-        <View style={[styles.card, styles.goodCard]}>
-          <Text style={[styles.cardTitle, styles.goodTitle]}>좋은 사진</Text>
-          <View style={styles.thumbRow}>
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.goodThumb} />
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.goodThumb} />
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.goodThumb} />
+          <PrepExampleBlock tone="good" label="좋은 사진 예시" caption="정면 · 큰 얼굴 · 선명함 · 한 사람 · 밝은 조명">
+            <View style={[styles.cell, styles.goodCell]}>
+              <View style={silhouetteStyle(38, 60, 19, '#BFDDCA')} />
+            </View>
+            <View style={[styles.cell, styles.goodCell]}>
+              <View style={silhouetteStyle(38, 60, 19, '#BFDDCA')} />
+            </View>
+            <View style={[styles.cell, styles.goodCell]}>
+              <View style={silhouetteStyle(38, 60, 19, '#BFDDCA')} />
+            </View>
+          </PrepExampleBlock>
+
+          <PrepExampleBlock tone="bad" label="피해야 할 사진 예시" caption="옆모습 · 작은 얼굴 · 흐린 사진 · 여러 명 · 어두운 사진">
+            <View style={[styles.cell, styles.badCell]}>
+              <View style={silhouetteStyle(22, 34, 11, '#E5C6C6')} />
+            </View>
+            <View style={[styles.cell, styles.badCell, styles.twoUpCell]}>
+              <View style={silhouetteStyle(24, 38, 12, '#E5C6C6')} />
+              <View style={silhouetteStyle(24, 38, 12, '#E5C6C6')} />
+            </View>
+            <View style={[styles.cell, styles.darkCell]}>
+              <View style={silhouetteStyle(34, 52, 17, '#6B5A5A')} />
+            </View>
+          </PrepExampleBlock>
+
+          <View style={styles.tipBox}>
+            <Text style={styles.tipLabel}>고를 때 팁</Text>
+            <Text style={styles.tipText}>{TIPS.map((t) => `· ${t}`).join('\n')}</Text>
           </View>
-          <Text style={[styles.cardText, styles.goodText]}>
-            정면 · 눈과 눈썹이 잘 보임 · 얼굴 윤곽 명확 · 자연스럽게 다문 입 · 균일한 조명 · 깔끔한 배경
-          </Text>
-        </View>
-
-        <View style={[styles.card, styles.badCard]}>
-          <Text style={[styles.cardTitle, styles.badTitle]}>피해야 할 사진</Text>
-          <View style={styles.thumbRow}>
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.badThumb} />
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.badThumb} />
-            <PhotoPlaceholder width="100%" height={92} radius={9} tone="subtle" style={styles.badThumb} />
-          </View>
-          <Text style={[styles.cardText, styles.badText]}>
-            옆으로 돌아간 얼굴 · 얼굴을 가리는 머리카락 · 강한 그림자 · 과도한 미소 · 지나치게 가까운 촬영
-          </Text>
         </View>
       </ScrollView>
 
-      <View style={styles.ctaArea}>
-        <PrimaryButton label="갤러리에서 선택" onPress={handlePick} />
-      </View>
+      <SafeAreaView edges={['bottom']} style={styles.footerSafe}>
+        <View style={styles.ctaArea}>
+          <PrimaryButton label="앨범에서 사진 선택" onPress={handlePick} />
+        </View>
+      </SafeAreaView>
 
       <PermissionSheet
         visible={sheetVisible}
@@ -164,25 +203,20 @@ export default function S06_Upload({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surface },
-  body: { flex: 1 },
-  bodyContent: { paddingHorizontal: spacing.screenPadding, paddingTop: 6, gap: 18, paddingBottom: 24 },
-  titleBlock: { gap: 5 },
-  title: { fontSize: 22, fontWeight: '700', lineHeight: 22 * 1.35, color: colors.textPrimary },
-  subtitle: { fontSize: 14, color: colors.textTertiary, lineHeight: 21 },
-  card: { padding: 15, borderRadius: 16, borderWidth: 1, gap: 11 },
-  goodCard: { backgroundColor: colors.successBg, borderColor: colors.successBorder },
-  badCard: { backgroundColor: colors.errorBg, borderColor: colors.errorBorder },
-  cardTitle: { fontSize: 14, fontWeight: '700' },
-  goodTitle: { color: colors.successStrong },
-  badTitle: { color: colors.errorStrong },
-  thumbRow: { flexDirection: 'row', gap: 8 },
-  goodThumb: { flex: 1, borderColor: 'transparent', backgroundColor: '#DFEDE4' },
-  badThumb: { flex: 1, borderColor: 'transparent', backgroundColor: '#F2DEDE' },
-  cardText: { fontSize: 13, lineHeight: 13 * 1.55 },
-  goodText: { color: colors.successText },
-  badText: { color: colors.errorStrongAlt },
-  ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, gap: 10 },
+  outer: { flex: 1, backgroundColor: colors.inverseBg },
+  scroll: { flex: 1, backgroundColor: colors.surface },
+  scrollContent: { paddingBottom: 8 },
+  body: { paddingHorizontal: spacing.screenPadding, paddingTop: 16, gap: 12 },
+  cell: { flex: 1, height: 92, borderRadius: 9, alignItems: 'center', justifyContent: 'flex-end' },
+  goodCell: { backgroundColor: '#DFEDE4' },
+  badCell: { backgroundColor: '#F2DEDE' },
+  twoUpCell: { flexDirection: 'row', gap: 4 },
+  darkCell: { backgroundColor: '#7E6A6A' },
+  tipBox: { padding: 14, borderRadius: radius.cardList, backgroundColor: colors.surfaceSubtle, gap: 7 },
+  tipLabel: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  tipText: { fontSize: 13.5, lineHeight: 13.5 * 1.55, color: colors.textSecondaryAlt },
+  footerSafe: { backgroundColor: colors.surface },
+  ctaArea: { paddingHorizontal: spacing.screenPadding, paddingTop: 14, paddingBottom: 28, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
   errorBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(23,23,25,0.45)' },
   errorSheet: {
     position: 'absolute',

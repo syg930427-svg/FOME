@@ -23,10 +23,10 @@ export default function PhotoInputMethod({ navigation, route }: Props) {
   async function handleSubmit() {
     if (method === 'camera') {
       const status = await getCameraPermission();
-      // 촬영을 고르면 곧장 카메라로 가지 않고 "이 사진은 이렇게 준비해
-      // 주세요"(S02_PurposeGuide) 안내를 한 번 보여준 뒤 그 화면의 CTA에서
-      // 카메라로 넘어간다 — 기존 사진 사용은 이 안내를 거치지 않는다.
-      if (status === 'granted' || status === 'limited') navigation.navigate('S02_PurposeGuide');
+      // 촬영을 고르면 곧장 카메라로 가지 않고 "촬영 준비"(CameraPrep, Claude
+      // Design 핸드오프) 안내를 한 번 보여준 뒤 그 화면의 CTA에서 카메라로
+      // 넘어간다 — 기존 사진 사용은 이 안내를 거치지 않는다.
+      if (status === 'granted' || status === 'limited') navigation.navigate('CameraPrep');
       else if (status === 'denied') navigation.navigate('CameraPermissionDenied');
       else setSheetVisible(true);
     } else {
@@ -41,7 +41,7 @@ export default function PhotoInputMethod({ navigation, route }: Props) {
     if (method === 'camera') {
       const status = await requestCameraPermission();
       setSheetVisible(false);
-      if (status === 'granted' || status === 'limited') navigation.navigate('S02_PurposeGuide');
+      if (status === 'granted' || status === 'limited') navigation.navigate('CameraPrep');
       else navigation.navigate('CameraPermissionDenied');
     } else {
       const status = await requestPhotosPermission();
